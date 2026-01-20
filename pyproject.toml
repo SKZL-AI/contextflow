@@ -70,7 +70,7 @@ pytest-mock = "^3.12"
 mypy = "^1.8"
 ruff = "^0.1"
 black = "^24.1"
-pre-commit = "^3.6"
+pre-commit = "^4.5"
 mkdocs-material = "^9.5"
 mkdocstrings = {extras = ["python"], version = "^0.24"}
 
