@@ -29,7 +29,7 @@ python = "^3.11"
 # Core
 pydantic = "^2.5"
 pydantic-settings = "^2.1"
-httpx = "^0.26"
+httpx = "^0.28"
 tenacity = "^8.2"
 aiofiles = "^23.2"
 
