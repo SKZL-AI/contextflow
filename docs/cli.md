@@ -7,13 +7,13 @@ ContextFlow provides a command-line interface for quick interactions and automat
 The CLI is included with the ContextFlow package:
 
 ```bash
-npm install -g contextflow
+pip install contextflow
 ```
 
-Or use via npx:
+Or with Poetry:
 
 ```bash
-npx contextflow <command>
+poetry add contextflow
 ```
 
 ## Commands
@@ -23,146 +23,140 @@ npx contextflow <command>
 Process input through ContextFlow.
 
 ```bash
-contextflow process [options] <input>
+contextflow process [OPTIONS] TASK [DOCUMENTS]...
 ```
 
 #### Options
 
 | Option | Alias | Description | Default |
 |--------|-------|-------------|---------|
-| `--strategy` | `-s` | Strategy to use | auto |
+| `--strategy` | `-s` | Strategy to use (auto, gsd, ralph, rlm) | auto |
 | `--provider` | `-p` | Provider to use | claude |
-| `--model` | `-m` | Model to use | provider default |
-| `--output` | `-o` | Output file | stdout |
-| `--format` | `-f` | Output format (text, json) | text |
-| `--verify` | `-v` | Enable verification | false |
-| `--context` | `-c` | Context file (JSON) | none |
+| `--context` | `-c` | Direct context string | none |
+| `--output` | `-o` | Output format (text, json, markdown) | text |
+| `--output-file` | `-O` | Write output to file | stdout |
+| `--stream` | | Enable streaming output | false |
+| `--no-verify` | | Disable verification | false |
+| `--verbose` | `-v` | Verbose output | false |
 
 #### Examples
 
 ```bash
-# Simple query
-contextflow process "What is machine learning?"
+# Simple query with document
+contextflow process "Summarize this document" document.txt
 
-# With strategy
-contextflow process -s ralph "Analyze the benefits of microservices"
+# With inline context
+contextflow process --context "Python is a programming language" "What is Python?"
 
-# With provider
-contextflow process -p openai -m gpt-4 "Explain quantum computing"
+# With specific strategy
+contextflow process -s ralph "Analyze the benefits of microservices" architecture.md
 
-# With context file
-contextflow process -c context.json "Summarize this document"
+# With provider selection
+contextflow process -p openai "Explain quantum computing" research.pdf
 
-# Output to file
-contextflow process -o result.txt "Write a poem about coding"
+# Output to file as JSON
+contextflow process -o json -O result.json "Extract key points" report.txt
 
-# JSON output with verification
-contextflow process -f json -v "List 5 programming languages"
-```
+# Streaming mode
+contextflow process --stream "Write a detailed guide on Docker"
 
-### stream
-
-Stream responses in real-time.
-
-```bash
-contextflow stream [options] <input>
-```
-
-#### Options
-
-Same as `process`, plus:
-
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--no-color` | | Disable colored output | false |
-
-#### Examples
-
-```bash
-# Stream a long response
-contextflow stream "Write a detailed guide on Docker"
-
-# Stream with specific strategy
-contextflow stream -s rlm "Design a REST API architecture"
+# Multiple documents
+contextflow process "Compare these files" file1.py file2.py file3.py
 ```
 
 ### analyze
 
-Analyze input without processing.
+Analyze input without processing to get strategy recommendations.
 
 ```bash
-contextflow analyze [options] <input>
+contextflow analyze [OPTIONS] [DOCUMENTS]...
 ```
 
 #### Options
 
 | Option | Alias | Description | Default |
 |--------|-------|-------------|---------|
-| `--format` | `-f` | Output format (text, json) | text |
-| `--verbose` | | Show detailed analysis | false |
+| `--context` | `-c` | Direct context string | none |
+| `--output` | `-o` | Output format (text, json) | text |
+| `--output-file` | `-O` | Write output to file | stdout |
+| `--verbose` | `-v` | Verbose output with LLM analysis | false |
 
 #### Examples
 
 ```bash
-# Analyze routing decision
-contextflow analyze "Build a recommendation system"
+# Analyze a document
+contextflow analyze document.txt
 
-# Verbose analysis
-contextflow analyze --verbose "Explain recursion"
+# Analyze with verbose output
+contextflow analyze --verbose large_report.pdf
 
 # JSON output
-contextflow analyze -f json "Design a database schema"
+contextflow analyze -o json -O analysis.json codebase/*.py
+
+# Analyze inline context
+contextflow analyze --context "Your text here"
 ```
 
-### config
+### serve
 
-Manage configuration.
+Start the API server.
 
 ```bash
-contextflow config <subcommand>
+contextflow serve [OPTIONS]
 ```
 
-#### Subcommands
+#### Options
+
+| Option | Alias | Description | Default |
+|--------|-------|-------------|---------|
+| `--host` | `-h` | Host to bind | 0.0.0.0 |
+| `--port` | `-p` | Port to bind | 8000 |
+| `--reload` | | Enable auto-reload | false |
+| `--workers` | `-w` | Number of workers | 1 |
+| `--cors-origins` | | CORS allowed origins | none |
+| `--api-key` | | API key for authentication | none |
+
+#### Examples
 
 ```bash
-# Show current config
-contextflow config show
+# Start with defaults
+contextflow serve
 
-# Set a value
-contextflow config set provider openai
-contextflow config set model gpt-4-turbo
-contextflow config set defaultStrategy ralph
+# Custom port
+contextflow serve --port 3000
 
-# Get a value
-contextflow config get provider
+# Development mode with auto-reload
+contextflow serve --reload
 
-# Reset to defaults
-contextflow config reset
+# Production with multiple workers
+contextflow serve --workers 4 --host 0.0.0.0 --port 8080
 
-# Initialize config file
-contextflow config init
+# With CORS
+contextflow serve --cors-origins "http://localhost:3000,https://myapp.com"
+```
+
+### info
+
+Show system information.
+
+```bash
+contextflow info
 ```
 
 ### providers
 
-List and manage providers.
+List available providers.
 
 ```bash
-contextflow providers [subcommand]
+contextflow providers
 ```
 
-#### Examples
+### strategies
+
+List available strategies.
 
 ```bash
-# List available providers
-contextflow providers list
-
-# Check provider status
-contextflow providers status
-
-# Test provider connection
-contextflow providers test claude
-contextflow providers test openai
+contextflow strategies
 ```
 
 ## Global Options
@@ -171,11 +165,8 @@ These options work with all commands:
 
 | Option | Alias | Description |
 |--------|-------|-------------|
-| `--help` | `-h` | Show help |
+| `--help` | | Show help |
 | `--version` | | Show version |
-| `--debug` | `-d` | Enable debug logging |
-| `--quiet` | `-q` | Suppress non-essential output |
-| `--config` | | Path to config file |
 
 ## Environment Variables
 
@@ -185,44 +176,42 @@ The CLI respects these environment variables:
 # Provider API keys
 export ANTHROPIC_API_KEY=sk-ant-...
 export OPENAI_API_KEY=sk-...
+export GROQ_API_KEY=gsk_...
+export GOOGLE_API_KEY=...
+
+# Ollama configuration
 export OLLAMA_BASE_URL=http://localhost:11434
 
 # Defaults
-export CONTEXTFLOW_PROVIDER=claude
-export CONTEXTFLOW_MODEL=claude-sonnet-4-20250514
-export CONTEXTFLOW_STRATEGY=auto
+export CONTEXTFLOW_DEFAULT_PROVIDER=claude
+export CONTEXTFLOW_GSD_MAX_TOKENS=10000
+export CONTEXTFLOW_RLM_MAX_PARALLEL_AGENTS=10
 
 # Logging
 export CONTEXTFLOW_LOG_LEVEL=info
-export CONTEXTFLOW_DEBUG=false
 ```
 
-## Configuration File
+## Configuration
 
-Create `contextflow.config.js` or `.contextflowrc.json`:
+ContextFlow can be configured via environment variables or programmatically in Python:
 
-```javascript
-// contextflow.config.js
-module.exports = {
-  provider: 'claude',
-  model: 'claude-sonnet-4-20250514',
-  defaultStrategy: 'auto',
-  verification: {
-    enabled: true
-  }
-};
-```
+```python
+from contextflow import ContextFlow, ContextFlowConfig
+from contextflow.core.config import StrategyConfig, RAGConfig
 
-```json
-// .contextflowrc.json
-{
-  "provider": "claude",
-  "model": "claude-sonnet-4-20250514",
-  "defaultStrategy": "auto",
-  "verification": {
-    "enabled": true
-  }
-}
+config = ContextFlowConfig(
+    default_provider="claude",
+    strategy=StrategyConfig(
+        rlm_max_parallel_agents=20,
+        rlm_max_iterations=100,
+    ),
+    rag=RAGConfig(
+        chunk_size=5000,
+        chunk_overlap=500,
+    ),
+)
+
+cf = ContextFlow(config=config)
 ```
 
 ## Piping and Scripting
@@ -231,26 +220,26 @@ module.exports = {
 
 ```bash
 # Pipe from file
-cat document.txt | contextflow process "Summarize this"
+cat document.txt | contextflow process "Summarize this" -
 
 # Pipe from command
-git diff | contextflow process "Explain these changes"
+git diff | contextflow process "Explain these changes" -
 
 # Chain commands
-echo "Hello world" | contextflow process "Translate to Spanish" | tee output.txt
+echo "Hello world" | contextflow process "Translate to Spanish" - | tee output.txt
 ```
 
 ### JSON Output for Scripts
 
 ```bash
 # Get JSON result
-result=$(contextflow process -f json "What is 2+2?")
-echo $result | jq '.output'
+result=$(contextflow process -o json "What is 2+2?" --context "Math question")
+echo $result | jq '.answer'
 
 # Use in scripts
 #!/bin/bash
-response=$(contextflow process -f json -s gsd "Get current date")
-strategy=$(echo $response | jq -r '.strategy')
+response=$(contextflow process -o json -s gsd --context "Test" "Get info")
+strategy=$(echo $response | jq -r '.strategy_used')
 echo "Used strategy: $strategy"
 ```
 
@@ -260,10 +249,6 @@ echo "Used strategy: $strategy"
 |------|-------------|
 | 0 | Success |
 | 1 | General error |
-| 2 | Invalid arguments |
-| 3 | Provider error |
-| 4 | Verification failed |
-| 5 | Timeout |
 
 ## Examples
 
@@ -271,13 +256,13 @@ echo "Used strategy: $strategy"
 
 ```bash
 # Quick question
-contextflow process "What's the syntax for async/await in JavaScript?"
+contextflow process --context "Python basics" "What's the syntax for list comprehension?"
 
 # Code review
-git diff HEAD~1 | contextflow process -s ralph "Review this code"
+git diff HEAD~1 | contextflow process -s ralph "Review this code" -
 
-# Documentation
-contextflow process -o README.md "Generate README for a Node.js API project"
+# Summarize documentation
+contextflow process "Summarize this README" README.md
 ```
 
 ### Automation
@@ -287,24 +272,29 @@ contextflow process -o README.md "Generate README for a Node.js API project"
 # analyze_logs.sh
 
 LOG_FILE=$1
-CONTEXT=$(cat $LOG_FILE)
 
 contextflow process \
   -s ralph \
-  -f json \
-  -c <(echo "{\"logs\": \"$CONTEXT\"}") \
+  -o json \
   "Analyze these logs for errors and suggest fixes" \
-  | jq '.output'
+  "$LOG_FILE" \
+  | jq '.answer'
 ```
 
-### Integration
+### Integration with Python
 
-```bash
-# CI/CD pipeline
-contextflow process -v -f json "Review PR #123 changes" > review.json
+```python
+import subprocess
+import json
 
-# Cron job
-0 9 * * * contextflow process "Generate daily report" | mail -s "Daily Report" team@example.com
+# Call CLI from Python
+result = subprocess.run(
+    ["contextflow", "process", "-o", "json", "Summarize", "doc.txt"],
+    capture_output=True,
+    text=True
+)
+data = json.loads(result.stdout)
+print(data["answer"])
 ```
 
 ---
