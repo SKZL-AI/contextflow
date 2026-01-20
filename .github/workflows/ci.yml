@@ -38,6 +38,11 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --with dev --no-interaction
 
+      - name: Fix formatting (ruff + black)
+        run: |
+          poetry run ruff check src/ tests/ --fix || true
+          poetry run black src/ tests/
+
       - name: Run Ruff linting
         run: poetry run ruff check src/ tests/
 
