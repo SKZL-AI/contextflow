@@ -1,12 +1,83 @@
+import { useMemo } from 'react';
 import { Layers } from 'lucide-react';
-
-const strategies = [
-  { name: 'GSD', percentage: 30, color: 'bg-green-500' },
-  { name: 'RALPH', percentage: 40, color: 'bg-blue-500' },
-  { name: 'RLM', percentage: 30, color: 'bg-orange-500' },
-];
+import { useAppStore } from '../../stores/appStore';
 
 export function StrategyDistribution() {
+  const { recentTasks } = useAppStore();
+
+  const { strategies, total, circumference } = useMemo(() => {
+    const circumference = 2 * Math.PI * 40; // 251.2 for r=40
+
+    // Count strategies (normalize to lowercase for comparison)
+    const gsdCount = recentTasks.filter(t =>
+      t.strategy.toLowerCase() === 'gsd'
+    ).length;
+    const ralphCount = recentTasks.filter(t =>
+      t.strategy.toLowerCase() === 'ralph'
+    ).length;
+    const rlmCount = recentTasks.filter(t =>
+      t.strategy.toLowerCase() === 'rlm'
+    ).length;
+    const autoCount = recentTasks.filter(t =>
+      t.strategy.toLowerCase() === 'auto'
+    ).length;
+
+    const total = gsdCount + ralphCount + rlmCount + autoCount || 1; // Avoid division by 0
+
+    const strategies = [
+      {
+        name: 'GSD',
+        count: gsdCount,
+        percentage: Math.round((gsdCount / total) * 100),
+        color: 'bg-green-500',
+        strokeColor: '#22c55e'
+      },
+      {
+        name: 'RALPH',
+        count: ralphCount,
+        percentage: Math.round((ralphCount / total) * 100),
+        color: 'bg-blue-500',
+        strokeColor: '#3b82f6'
+      },
+      {
+        name: 'RLM',
+        count: rlmCount,
+        percentage: Math.round((rlmCount / total) * 100),
+        color: 'bg-orange-500',
+        strokeColor: '#f97316'
+      },
+    ];
+
+    // Add AUTO if there are any
+    if (autoCount > 0) {
+      strategies.push({
+        name: 'AUTO',
+        count: autoCount,
+        percentage: Math.round((autoCount / total) * 100),
+        color: 'bg-purple-500',
+        strokeColor: '#a855f7'
+      });
+    }
+
+    return { strategies, total, circumference };
+  }, [recentTasks]);
+
+  // Calculate SVG segments
+  let offset = 0;
+  const segments = strategies.map(s => {
+    const dashLength = (s.percentage / 100) * circumference;
+    const segment = {
+      ...s,
+      dashArray: `${dashLength} ${circumference}`,
+      dashOffset: -offset
+    };
+    offset += dashLength;
+    return segment;
+  });
+
+  // Check if there are no tasks
+  const hasData = recentTasks.length > 0;
+
   return (
     <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
       <div className="flex items-center gap-2 mb-6">
@@ -27,58 +98,47 @@ export function StrategyDistribution() {
               stroke="#1e293b"
               strokeWidth="12"
             />
-            {/* GSD segment (30%) */}
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="none"
-              stroke="#22c55e"
-              strokeWidth="12"
-              strokeDasharray="75.4 251.2"
-              strokeDashoffset="0"
-              strokeLinecap="round"
-            />
-            {/* RALPH segment (40%) */}
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth="12"
-              strokeDasharray="100.5 251.2"
-              strokeDashoffset="-75.4"
-              strokeLinecap="round"
-            />
-            {/* RLM segment (30%) */}
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="none"
-              stroke="#f97316"
-              strokeWidth="12"
-              strokeDasharray="75.4 251.2"
-              strokeDashoffset="-175.9"
-              strokeLinecap="round"
-            />
+            {/* Dynamic segments */}
+            {hasData && segments.map((segment) => (
+              <circle
+                key={segment.name}
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke={segment.strokeColor}
+                strokeWidth="12"
+                strokeDasharray={segment.dashArray}
+                strokeDashoffset={segment.dashOffset}
+                strokeLinecap="round"
+              />
+            ))}
           </svg>
           {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold">1.2K</span>
-            <span className="text-xs text-slate-500">Tasks</span>
+            {hasData ? (
+              <>
+                <span className="text-2xl font-bold">{total.toLocaleString()}</span>
+                <span className="text-xs text-slate-500">Tasks</span>
+              </>
+            ) : (
+              <span className="text-sm text-slate-500">Keine Daten</span>
+            )}
           </div>
         </div>
 
         {/* Legend */}
         <div className="ml-8 space-y-3">
-          {strategies.map(({ name, percentage, color }) => (
-            <div key={name} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${color}`} />
-              <span className="text-sm">{name} ({percentage}%)</span>
-            </div>
-          ))}
+          {hasData ? (
+            strategies.map(({ name, percentage, color }) => (
+              <div key={name} className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${color}`} />
+                <span className="text-sm">{name} ({percentage}%)</span>
+              </div>
+            ))
+          ) : (
+            <span className="text-sm text-slate-500">Noch keine Tasks vorhanden</span>
+          )}
         </div>
       </div>
     </div>

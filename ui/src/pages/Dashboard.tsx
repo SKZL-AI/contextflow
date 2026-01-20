@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain } from 'lucide-react';
 import {
   MetricsGrid,
@@ -10,11 +10,20 @@ import {
   StrategyDistribution,
 } from '../components/dashboard';
 import type { Strategy } from '../components/dashboard';
+import { useContextFlowAPI } from '../hooks/useContextFlowAPI';
 
 export function Dashboard() {
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>('auto');
   const [isProcessing, setIsProcessing] = useState(false);
   const [ragEnabled, setRagEnabled] = useState(false);
+
+  const { processTask, fetchProviders, fetchHealth } = useContextFlowAPI();
+
+  // Initialize data on mount
+  useEffect(() => {
+    fetchHealth();
+    fetchProviders();
+  }, [fetchHealth, fetchProviders]);
 
   const handleStrategySelect = (strategy: Strategy) => {
     setSelectedStrategy(strategy);
@@ -23,9 +32,7 @@ export function Dashboard() {
   const handleTaskSubmit = async (task: string) => {
     setIsProcessing(true);
     try {
-      // TODO: Implement task submission logic via API
-      console.log('Submitting task:', task, 'with strategy:', selectedStrategy);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await processTask(task, selectedStrategy);
     } finally {
       setIsProcessing(false);
     }
