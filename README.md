@@ -232,6 +232,52 @@ license of your chosen embedding model.
 
 ---
 
+## Known Limitations
+
+ContextFlow v0.1.0 has the following known limitations, planned for future versions:
+
+### In-Memory RAG (By Design)
+
+The FAISS-based RAG system runs entirely in-memory for maximum performance (~1ms queries).
+This means:
+- **No persistence**: Data is lost when the process ends
+- **RAM-limited**: Large document collections require sufficient memory
+- **Single-process**: Not suitable for distributed deployments
+
+**Planned for v0.2.0**: Optional external vector database integration (Pinecone, Weaviate, Qdrant).
+
+### Session Storage
+
+The SessionManager uses synchronous SQLite for simplicity. For high-concurrency production
+deployments, this may become a bottleneck.
+
+**Planned for v0.2.0**: Async database backends (PostgreSQL, Redis).
+
+### RLM Strategy Security
+
+The RLM strategy uses a REPL environment for code execution. While sandboxed, it should
+be used with caution in untrusted environments.
+
+**Recommendations**:
+- Don't expose RLM endpoints to untrusted users
+- Review generated code before execution in sensitive contexts
+- Consider using GSD or RALPH strategies for user-facing applications
+
+### Strategy Thresholds
+
+The automatic strategy selection thresholds (10K, 50K, 100K tokens) are based on
+empirical testing but may not be optimal for all use cases. You can override them:
+
+```python
+result = await cf.process(
+    task="...",
+    documents=["..."],
+    strategy="ralph"  # Force specific strategy
+)
+```
+
+---
+
 ## Contributing
 
 Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
