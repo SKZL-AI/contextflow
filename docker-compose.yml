@@ -1,0 +1,144 @@
+# ContextFlow AI - Docker Compose Configuration
+# Usage: docker-compose up -d
+
+version: "3.9"
+
+services:
+  # ===========================================================================
+  # ContextFlow API Server
+  # ===========================================================================
+  contextflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: contextflow:latest
+    container_name: contextflow-api
+    restart: unless-stopped
+    ports:
+      - "${CONTEXTFLOW_API_PORT:-8000}:8000"
+    environment:
+      # LLM Provider API Keys (from .env)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      # Local providers
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - VLLM_BASE_URL=${VLLM_BASE_URL:-http://host.docker.internal:8001}
+      # ContextFlow settings
+      - CONTEXTFLOW_DEFAULT_PROVIDER=${CONTEXTFLOW_DEFAULT_PROVIDER:-claude}
+      - CONTEXTFLOW_LOG_LEVEL=${CONTEXTFLOW_LOG_LEVEL:-INFO}
+      - CONTEXTFLOW_ENABLE_CORS=true
+      - CONTEXTFLOW_CORS_ORIGINS=${CONTEXTFLOW_CORS_ORIGINS:-*}
+    volumes:
+      # Persist session data
+      - contextflow-data:/app/data
+      # Logs
+      - contextflow-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - contextflow-network
+    # Uncomment to use GPU (requires nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ===========================================================================
+  # Redis (Optional - for distributed sessions/caching)
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: contextflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - contextflow-network
+    profiles:
+      - with-redis
+
+  # ===========================================================================
+  # Ollama (Optional - for local LLM inference)
+  # ===========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: contextflow-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    networks:
+      - contextflow-network
+    profiles:
+      - with-ollama
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  contextflow-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  contextflow-data:
+    name: contextflow-data
+  contextflow-logs:
+    name: contextflow-logs
+  redis-data:
+    name: contextflow-redis-data
+  ollama-models:
+    name: contextflow-ollama-models
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Basic:
+#   docker-compose up -d
+#
+# With Redis:
+#   docker-compose --profile with-redis up -d
+#
+# With Ollama:
+#   docker-compose --profile with-ollama up -d
+#
+# All services:
+#   docker-compose --profile with-redis --profile with-ollama up -d
+#
+# View logs:
+#   docker-compose logs -f contextflow
+#
+# Stop:
+#   docker-compose down
+#
+# Stop and remove volumes:
+#   docker-compose down -v

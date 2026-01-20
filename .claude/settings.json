@@ -1,0 +1,38 @@
+{
+  "project": "contextflow",
+  "version": "0.1.0",
+  "permissions": {
+    "allowedCommands": [
+      "python -c *",
+      "python -m pytest *",
+      "make *",
+      "pip install *",
+      "pip list",
+      "ls *",
+      "cat *",
+      "head *",
+      "tail *",
+      "black *",
+      "ruff *",
+      "mypy *"
+    ],
+    "blockedCommands": [
+      "rm -rf /",
+      "sudo *"
+    ]
+  },
+  "model": {
+    "preferred": "claude-3-5-sonnet-20241022",
+    "fallback": "claude-3-haiku-20240307"
+  },
+  "verification": {
+    "enabled": true,
+    "maxIterations": 3,
+    "requirePassingTests": true
+  },
+  "hooks": {
+    "postEdit": ".claude/hooks/post-edit.js",
+    "postWrite": ".claude/hooks/post-write.js",
+    "preCommit": ".claude/hooks/pre-commit.js"
+  }
+}

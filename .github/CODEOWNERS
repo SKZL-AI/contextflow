@@ -1,0 +1,22 @@
+# ContextFlow Code Owners
+# These owners will be requested for review when someone opens a pull request.
+
+# Global owners - will be requested for review on all changes
+* @contextflow-maintainers
+
+# Core library
+/src/contextflow/ @contextflow-core-team
+
+# MCP Integration
+/src/contextflow/mcp/ @contextflow-mcp-team
+
+# Documentation
+/docs/ @contextflow-docs-team
+*.md @contextflow-docs-team
+
+# CI/CD and DevOps
+/.github/ @contextflow-devops-team
+/pyproject.toml @contextflow-core-team @contextflow-devops-team
+
+# Tests
+/tests/ @contextflow-core-team

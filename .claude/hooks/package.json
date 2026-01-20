@@ -1,0 +1,23 @@
+{
+    "name": "contextflow-hooks",
+    "version": "1.0.0",
+    "description": "Development hooks for ContextFlow - code quality automation (Boris Step 9)",
+    "main": "index.js",
+    "scripts": {
+        "test": "node -e \"const hooks = require('./index'); console.log('Hooks loaded:', hooks.listHooks().map(h => h.name).join(', '));\""
+    },
+    "keywords": [
+        "contextflow",
+        "hooks",
+        "code-quality",
+        "formatting",
+        "linting"
+    ],
+    "author": "ContextFlow AI Team",
+    "license": "MIT",
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "dependencies": {},
+    "devDependencies": {}
+}
