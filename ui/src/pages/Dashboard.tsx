@@ -29,10 +29,10 @@ export function Dashboard() {
     setSelectedStrategy(strategy);
   };
 
-  const handleTaskSubmit = async (task: string) => {
+  const handleTaskSubmit = async (task: string, documents?: string[]) => {
     setIsProcessing(true);
     try {
-      await processTask(task, selectedStrategy);
+      await processTask(task, selectedStrategy, undefined, documents);
     } finally {
       setIsProcessing(false);
     }
