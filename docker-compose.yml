@@ -5,6 +5,66 @@ version: "3.9"
 
 services:
   # ===========================================================================
+  # ContextFlow UI (React/Vite Frontend)
+  # ===========================================================================
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      target: ${UI_BUILD_TARGET:-production}
+    image: contextflow-ui:latest
+    container_name: contextflow-ui
+    restart: unless-stopped
+    ports:
+      - "${CONTEXTFLOW_UI_PORT:-80}:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_API_WS_URL=${VITE_API_WS_URL:-ws://localhost:8000}
+      - NODE_ENV=${NODE_ENV:-production}
+    depends_on:
+      contextflow:
+        condition: service_healthy
+    networks:
+      - contextflow-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================================================
+  # ContextFlow UI Development (Hot Reload)
+  # ===========================================================================
+  ui-dev:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      target: development
+    image: contextflow-ui:dev
+    container_name: contextflow-ui-dev
+    restart: unless-stopped
+    ports:
+      - "${CONTEXTFLOW_UI_DEV_PORT:-5173}:5173"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_API_WS_URL=${VITE_API_WS_URL:-ws://localhost:8000}
+      - NODE_ENV=development
+    volumes:
+      # Mount source for hot reload
+      - ./ui/src:/app/src:ro
+      - ./ui/public:/app/public:ro
+      - ./ui/index.html:/app/index.html:ro
+      - ./ui/vite.config.ts:/app/vite.config.ts:ro
+    depends_on:
+      contextflow:
+        condition: service_healthy
+    networks:
+      - contextflow-network
+    profiles:
+      - dev
+
+  # ===========================================================================
   # ContextFlow API Server
   # ===========================================================================
   contextflow:
@@ -122,8 +182,11 @@ volumes:
 # =============================================================================
 # Usage Examples
 # =============================================================================
-# Basic:
+# Basic (API + Production UI):
 #   docker-compose up -d
+#
+# Development mode (with hot reload UI on port 5173):
+#   docker-compose --profile dev up -d
 #
 # With Redis:
 #   docker-compose --profile with-redis up -d
@@ -131,14 +194,23 @@ volumes:
 # With Ollama:
 #   docker-compose --profile with-ollama up -d
 #
-# All services:
+# All services (production UI):
 #   docker-compose --profile with-redis --profile with-ollama up -d
+#
+# All services (development UI):
+#   docker-compose --profile dev --profile with-redis --profile with-ollama up -d
 #
 # View logs:
 #   docker-compose logs -f contextflow
+#   docker-compose logs -f ui
+#   docker-compose logs -f ui-dev
 #
 # Stop:
 #   docker-compose down
 #
 # Stop and remove volumes:
 #   docker-compose down -v
+#
+# Rebuild UI after changes:
+#   docker-compose build ui
+#   docker-compose up -d ui
