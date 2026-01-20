@@ -10,21 +10,20 @@ Tests all verification functionality including:
 """
 
 import json
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from contextflow.core.types import CompletionResponse
 from contextflow.strategies.verification import (
-    VerificationProtocol,
-    VerificationResult,
     VerificationCheck,
     VerificationCheckType,
+    VerificationProtocol,
+    VerificationResult,
     quick_verify,
     verified_completion,
 )
-from contextflow.core.types import Message, CompletionResponse
 from contextflow.utils.errors import StrategyExecutionError
-
 
 # =============================================================================
 # Fixtures
@@ -46,13 +45,15 @@ def mock_provider() -> MagicMock:
 def passing_verification_response() -> CompletionResponse:
     """Mock response indicating verification passed."""
     return CompletionResponse(
-        content=json.dumps({
-            "passed": True,
-            "score": 0.95,
-            "message": "Output correctly addresses the task",
-            "issues": [],
-            "details": {"relevance": 0.95, "directness": 0.92}
-        }),
+        content=json.dumps(
+            {
+                "passed": True,
+                "score": 0.95,
+                "message": "Output correctly addresses the task",
+                "issues": [],
+                "details": {"relevance": 0.95, "directness": 0.92},
+            }
+        ),
         tokens_used=50,
         input_tokens=30,
         output_tokens=20,
@@ -67,13 +68,15 @@ def passing_verification_response() -> CompletionResponse:
 def failing_verification_response() -> CompletionResponse:
     """Mock response indicating verification failed."""
     return CompletionResponse(
-        content=json.dumps({
-            "passed": False,
-            "score": 0.4,
-            "message": "Output does not fully address the task",
-            "issues": ["Missing key information", "Incomplete analysis"],
-            "details": {"relevance": 0.5, "directness": 0.3}
-        }),
+        content=json.dumps(
+            {
+                "passed": False,
+                "score": 0.4,
+                "message": "Output does not fully address the task",
+                "issues": ["Missing key information", "Incomplete analysis"],
+                "details": {"relevance": 0.5, "directness": 0.3},
+            }
+        ),
         tokens_used=50,
         input_tokens=30,
         output_tokens=20,
@@ -88,16 +91,18 @@ def failing_verification_response() -> CompletionResponse:
 def constraint_check_response() -> CompletionResponse:
     """Mock response for constraint checking."""
     return CompletionResponse(
-        content=json.dumps({
-            "passed": True,
-            "score": 0.9,
-            "message": "All constraints met",
-            "constraint_results": [
-                {"constraint": "Must be under 500 words", "met": True, "note": "Within limit"},
-                {"constraint": "Include examples", "met": True, "note": "Examples provided"}
-            ],
-            "unmet_constraints": []
-        }),
+        content=json.dumps(
+            {
+                "passed": True,
+                "score": 0.9,
+                "message": "All constraints met",
+                "constraint_results": [
+                    {"constraint": "Must be under 500 words", "met": True, "note": "Within limit"},
+                    {"constraint": "Include examples", "met": True, "note": "Examples provided"},
+                ],
+                "unmet_constraints": [],
+            }
+        ),
         tokens_used=60,
         input_tokens=40,
         output_tokens=20,
@@ -112,13 +117,15 @@ def constraint_check_response() -> CompletionResponse:
 def completeness_response() -> CompletionResponse:
     """Mock response for completeness checking."""
     return CompletionResponse(
-        content=json.dumps({
-            "passed": True,
-            "score": 0.85,
-            "message": "Answer is complete",
-            "missing_elements": [],
-            "coverage_percentage": 95
-        }),
+        content=json.dumps(
+            {
+                "passed": True,
+                "score": 0.85,
+                "message": "Answer is complete",
+                "missing_elements": [],
+                "coverage_percentage": 95,
+            }
+        ),
         tokens_used=45,
         input_tokens=30,
         output_tokens=15,
@@ -133,18 +140,20 @@ def completeness_response() -> CompletionResponse:
 def quality_check_response() -> CompletionResponse:
     """Mock response for quality checking."""
     return CompletionResponse(
-        content=json.dumps({
-            "passed": True,
-            "score": 0.88,
-            "message": "Good quality output",
-            "quality_aspects": {
-                "clarity": 0.9,
-                "accuracy": 0.85,
-                "structure": 0.88,
-                "usefulness": 0.9
-            },
-            "suggestions": ["Consider adding more context"]
-        }),
+        content=json.dumps(
+            {
+                "passed": True,
+                "score": 0.88,
+                "message": "Good quality output",
+                "quality_aspects": {
+                    "clarity": 0.9,
+                    "accuracy": 0.85,
+                    "structure": 0.88,
+                    "usefulness": 0.9,
+                },
+                "suggestions": ["Consider adding more context"],
+            }
+        ),
         tokens_used=55,
         input_tokens=35,
         output_tokens=20,
@@ -159,13 +168,15 @@ def quality_check_response() -> CompletionResponse:
 def accuracy_check_response() -> CompletionResponse:
     """Mock response for accuracy checking."""
     return CompletionResponse(
-        content=json.dumps({
-            "passed": True,
-            "score": 0.92,
-            "message": "Output accurately reflects context",
-            "unsupported_claims": [],
-            "accuracy_issues": []
-        }),
+        content=json.dumps(
+            {
+                "passed": True,
+                "score": 0.92,
+                "message": "Output accurately reflects context",
+                "unsupported_claims": [],
+                "accuracy_issues": [],
+            }
+        ),
         tokens_used=50,
         input_tokens=35,
         output_tokens=15,
@@ -196,23 +207,14 @@ class TestVerificationProtocolInit:
 
     def test_init_with_custom_confidence(self, mock_provider: MagicMock) -> None:
         """Test initialization with custom minimum confidence."""
-        verifier = VerificationProtocol(
-            provider=mock_provider,
-            min_confidence=0.9
-        )
+        verifier = VerificationProtocol(provider=mock_provider, min_confidence=0.9)
 
         assert verifier.min_confidence == 0.9
 
     def test_init_with_custom_checks(self, mock_provider: MagicMock) -> None:
         """Test initialization with custom required checks."""
-        custom_checks = [
-            VerificationCheckType.TASK_ALIGNMENT,
-            VerificationCheckType.ACCURACY
-        ]
-        verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=custom_checks
-        )
+        custom_checks = [VerificationCheckType.TASK_ALIGNMENT, VerificationCheckType.ACCURACY]
+        verifier = VerificationProtocol(provider=mock_provider, required_checks=custom_checks)
 
         assert verifier.required_checks == custom_checks
 
@@ -237,21 +239,17 @@ class TestTaskAlignmentCheck:
 
     @pytest.mark.asyncio
     async def test_task_alignment_passes(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test that task alignment passes for correct output."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.TASK_ALIGNMENT]
+            provider=mock_provider, required_checks=[VerificationCheckType.TASK_ALIGNMENT]
         )
 
         result = await verifier.verify(
-            task="Summarize this document",
-            output="This document discusses the key points of..."
+            task="Summarize this document", output="This document discusses the key points of..."
         )
 
         assert result.passed is True
@@ -262,21 +260,17 @@ class TestTaskAlignmentCheck:
 
     @pytest.mark.asyncio
     async def test_task_alignment_fails(
-        self,
-        mock_provider: MagicMock,
-        failing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, failing_verification_response: CompletionResponse
     ) -> None:
         """Test that task alignment fails for incorrect output."""
         mock_provider.complete = AsyncMock(return_value=failing_verification_response)
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.TASK_ALIGNMENT]
+            provider=mock_provider, required_checks=[VerificationCheckType.TASK_ALIGNMENT]
         )
 
         result = await verifier.verify(
-            task="Summarize this document",
-            output="Unrelated content here"
+            task="Summarize this document", output="Unrelated content here"
         )
 
         assert result.passed is False
@@ -293,31 +287,26 @@ class TestConstraintCheck:
 
     @pytest.mark.asyncio
     async def test_constraint_check_passes(
-        self,
-        mock_provider: MagicMock,
-        constraint_check_response: CompletionResponse
+        self, mock_provider: MagicMock, constraint_check_response: CompletionResponse
     ) -> None:
         """Test that constraint check passes when all constraints met."""
         mock_provider.complete = AsyncMock(return_value=constraint_check_response)
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.CONSTRAINT_CHECK]
+            provider=mock_provider, required_checks=[VerificationCheckType.CONSTRAINT_CHECK]
         )
 
         result = await verifier.verify(
             task="Write a summary",
             output="Here is a brief summary with examples...",
-            constraints=["Must be under 500 words", "Include examples"]
+            constraints=["Must be under 500 words", "Include examples"],
         )
 
         assert result.passed is True
 
     @pytest.mark.asyncio
     async def test_constraint_check_skipped_without_constraints(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test that constraint check is skipped when no constraints provided."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
@@ -326,14 +315,12 @@ class TestConstraintCheck:
             provider=mock_provider,
             required_checks=[
                 VerificationCheckType.TASK_ALIGNMENT,
-                VerificationCheckType.CONSTRAINT_CHECK
-            ]
+                VerificationCheckType.CONSTRAINT_CHECK,
+            ],
         )
 
         result = await verifier.verify(
-            task="Write something",
-            output="Output here",
-            constraints=None  # No constraints
+            task="Write something", output="Output here", constraints=None  # No constraints
         )
 
         # Only task alignment should be checked
@@ -351,27 +338,22 @@ class TestCompletenessCheck:
 
     @pytest.mark.asyncio
     async def test_completeness_check_passes(
-        self,
-        mock_provider: MagicMock,
-        completeness_response: CompletionResponse
+        self, mock_provider: MagicMock, completeness_response: CompletionResponse
     ) -> None:
         """Test that completeness check passes for complete output."""
         mock_provider.complete = AsyncMock(return_value=completeness_response)
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.COMPLETENESS]
+            provider=mock_provider, required_checks=[VerificationCheckType.COMPLETENESS]
         )
 
         result = await verifier.verify(
-            task="Explain photosynthesis",
-            output="Photosynthesis is the process by which plants..."
+            task="Explain photosynthesis", output="Photosynthesis is the process by which plants..."
         )
 
         assert result.passed is True
         assert any(
-            c.check_type == VerificationCheckType.COMPLETENESS and c.passed
-            for c in result.checks
+            c.check_type == VerificationCheckType.COMPLETENESS and c.passed for c in result.checks
         )
 
 
@@ -385,21 +367,17 @@ class TestQualityCheck:
 
     @pytest.mark.asyncio
     async def test_quality_check_passes(
-        self,
-        mock_provider: MagicMock,
-        quality_check_response: CompletionResponse
+        self, mock_provider: MagicMock, quality_check_response: CompletionResponse
     ) -> None:
         """Test that quality check passes for high-quality output."""
         mock_provider.complete = AsyncMock(return_value=quality_check_response)
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.QUALITY_CHECK]
+            provider=mock_provider, required_checks=[VerificationCheckType.QUALITY_CHECK]
         )
 
         result = await verifier.verify(
-            task="Write an essay",
-            output="This well-structured essay explores..."
+            task="Write an essay", output="This well-structured essay explores..."
         )
 
         assert result.passed is True
@@ -416,47 +394,37 @@ class TestAccuracyCheck:
 
     @pytest.mark.asyncio
     async def test_accuracy_check_passes_with_context(
-        self,
-        mock_provider: MagicMock,
-        accuracy_check_response: CompletionResponse
+        self, mock_provider: MagicMock, accuracy_check_response: CompletionResponse
     ) -> None:
         """Test that accuracy check passes when output matches context."""
         mock_provider.complete = AsyncMock(return_value=accuracy_check_response)
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.ACCURACY]
+            provider=mock_provider, required_checks=[VerificationCheckType.ACCURACY]
         )
 
         result = await verifier.verify(
             task="Extract key facts",
             output="The company was founded in 2020...",
-            context="Company History: Founded in 2020 by John Smith..."
+            context="Company History: Founded in 2020 by John Smith...",
         )
 
         assert result.passed is True
 
     @pytest.mark.asyncio
     async def test_accuracy_check_skipped_without_context(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test that accuracy check is skipped when no context provided."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
 
         verifier = VerificationProtocol(
             provider=mock_provider,
-            required_checks=[
-                VerificationCheckType.TASK_ALIGNMENT,
-                VerificationCheckType.ACCURACY
-            ]
+            required_checks=[VerificationCheckType.TASK_ALIGNMENT, VerificationCheckType.ACCURACY],
         )
 
         result = await verifier.verify(
-            task="Write something",
-            output="Output here",
-            context=None  # No context
+            task="Write something", output="Output here", context=None  # No context
         )
 
         check_types = [c.check_type for c in result.checks]
@@ -473,9 +441,7 @@ class TestFullVerification:
 
     @pytest.mark.asyncio
     async def test_full_verification_all_pass(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test full verification when all checks pass."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
@@ -483,8 +449,7 @@ class TestFullVerification:
         verifier = VerificationProtocol(provider=mock_provider)
 
         result = await verifier.verify(
-            task="Summarize the document",
-            output="This comprehensive summary covers..."
+            task="Summarize the document", output="This comprehensive summary covers..."
         )
 
         assert result.passed is True
@@ -494,18 +459,13 @@ class TestFullVerification:
 
     @pytest.mark.asyncio
     async def test_verification_result_structure(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test that VerificationResult has correct structure."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
 
         verifier = VerificationProtocol(provider=mock_provider)
-        result = await verifier.verify(
-            task="Test task",
-            output="Test output"
-        )
+        result = await verifier.verify(task="Test task", output="Test output")
 
         assert isinstance(result, VerificationResult)
         assert isinstance(result.passed, bool)
@@ -527,9 +487,7 @@ class TestIterateUntilVerified:
 
     @pytest.mark.asyncio
     async def test_iterate_passes_on_first_attempt(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test that iteration stops when first attempt passes."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
@@ -537,9 +495,7 @@ class TestIterateUntilVerified:
         verifier = VerificationProtocol(provider=mock_provider)
 
         output, result = await verifier.iterate_until_verified(
-            task="Write summary",
-            initial_output="Good summary here",
-            max_iterations=3
+            task="Write summary", initial_output="Good summary here", max_iterations=3
         )
 
         assert result.passed is True
@@ -550,7 +506,7 @@ class TestIterateUntilVerified:
         self,
         mock_provider: MagicMock,
         failing_verification_response: CompletionResponse,
-        passing_verification_response: CompletionResponse
+        passing_verification_response: CompletionResponse,
     ) -> None:
         """Test that iteration continues until verification passes."""
         # First call fails, second call passes
@@ -572,14 +528,11 @@ class TestIterateUntilVerified:
         )
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.TASK_ALIGNMENT]
+            provider=mock_provider, required_checks=[VerificationCheckType.TASK_ALIGNMENT]
         )
 
         output, result = await verifier.iterate_until_verified(
-            task="Write summary",
-            initial_output="Bad initial output",
-            max_iterations=3
+            task="Write summary", initial_output="Bad initial output", max_iterations=3
         )
 
         assert result.passed is True
@@ -590,7 +543,7 @@ class TestIterateUntilVerified:
         self,
         mock_provider: MagicMock,
         failing_verification_response: CompletionResponse,
-        passing_verification_response: CompletionResponse
+        passing_verification_response: CompletionResponse,
     ) -> None:
         """Test iteration with custom improvement callback."""
         mock_provider.complete = AsyncMock(
@@ -604,15 +557,14 @@ class TestIterateUntilVerified:
             return f"Improved: {output}"
 
         verifier = VerificationProtocol(
-            provider=mock_provider,
-            required_checks=[VerificationCheckType.TASK_ALIGNMENT]
+            provider=mock_provider, required_checks=[VerificationCheckType.TASK_ALIGNMENT]
         )
 
         output, result = await verifier.iterate_until_verified(
             task="Test task",
             initial_output="Initial",
             improvement_callback=custom_improve,
-            max_iterations=3
+            max_iterations=3,
         )
 
         assert "Improved:" in output or result.passed
@@ -640,10 +592,10 @@ class TestJSONParsing:
         """Test JSON extraction from markdown code blocks."""
         verifier = VerificationProtocol(provider=mock_provider)
 
-        response = '''Here is the assessment:
+        response = """Here is the assessment:
 ```json
 {"passed": true, "score": 0.85}
-```'''
+```"""
         result = verifier._parse_json_response(response)
 
         assert result["passed"] is True
@@ -682,10 +634,7 @@ class TestFallbackHeuristics:
         verifier = VerificationProtocol(provider=mock_provider)
 
         response = "The output passes all criteria and is correct and complete."
-        check = verifier._create_fallback_check(
-            VerificationCheckType.TASK_ALIGNMENT,
-            response
-        )
+        check = verifier._create_fallback_check(VerificationCheckType.TASK_ALIGNMENT, response)
 
         assert check.passed is True
         assert check.score == 0.6
@@ -695,10 +644,7 @@ class TestFallbackHeuristics:
         verifier = VerificationProtocol(provider=mock_provider)
 
         response = "The output fails to address the task and is incomplete."
-        check = verifier._create_fallback_check(
-            VerificationCheckType.TASK_ALIGNMENT,
-            response
-        )
+        check = verifier._create_fallback_check(VerificationCheckType.TASK_ALIGNMENT, response)
 
         assert check.passed is False
         assert check.score == 0.4
@@ -725,11 +671,11 @@ class TestVerificationSummary:
                     check_type=VerificationCheckType.TASK_ALIGNMENT,
                     passed=True,
                     score=0.9,
-                    message="Task addressed correctly"
+                    message="Task addressed correctly",
                 )
             ],
             execution_time=1.5,
-            iteration=1
+            iteration=1,
         )
 
         summary = verifier.get_verification_summary(result)
@@ -751,13 +697,13 @@ class TestVerificationSummary:
                     check_type=VerificationCheckType.TASK_ALIGNMENT,
                     passed=False,
                     score=0.3,
-                    message="Does not address task"
+                    message="Does not address task",
                 )
             ],
             issues=["Missing key information"],
             suggestions=["Add more details"],
             execution_time=1.2,
-            iteration=3
+            iteration=3,
         )
 
         summary = verifier.get_verification_summary(result)
@@ -777,51 +723,35 @@ class TestConvenienceFunctions:
 
     @pytest.mark.asyncio
     async def test_quick_verify_passes(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test quick_verify returns True for passing output."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
 
-        result = await quick_verify(
-            provider=mock_provider,
-            task="Test task",
-            output="Test output"
-        )
+        result = await quick_verify(provider=mock_provider, task="Test task", output="Test output")
 
         assert result is True
 
     @pytest.mark.asyncio
     async def test_quick_verify_fails(
-        self,
-        mock_provider: MagicMock,
-        failing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, failing_verification_response: CompletionResponse
     ) -> None:
         """Test quick_verify returns False for failing output."""
         mock_provider.complete = AsyncMock(return_value=failing_verification_response)
 
-        result = await quick_verify(
-            provider=mock_provider,
-            task="Test task",
-            output="Bad output"
-        )
+        result = await quick_verify(provider=mock_provider, task="Test task", output="Bad output")
 
         assert result is False
 
     @pytest.mark.asyncio
     async def test_verified_completion(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test verified_completion returns output and result."""
         mock_provider.complete = AsyncMock(return_value=passing_verification_response)
 
         output, result = await verified_completion(
-            provider=mock_provider,
-            task="Test task",
-            initial_output="Initial output"
+            provider=mock_provider, task="Test task", initial_output="Initial output"
         )
 
         assert output == "Initial output"
@@ -850,9 +780,7 @@ class TestErrorHandling:
 
     @pytest.mark.asyncio
     async def test_check_exception_continues(
-        self,
-        mock_provider: MagicMock,
-        passing_verification_response: CompletionResponse
+        self, mock_provider: MagicMock, passing_verification_response: CompletionResponse
     ) -> None:
         """Test that exceptions in individual checks don't stop others."""
         # First check fails, subsequent checks succeed
@@ -872,8 +800,8 @@ class TestErrorHandling:
             required_checks=[
                 VerificationCheckType.TASK_ALIGNMENT,
                 VerificationCheckType.COMPLETENESS,
-                VerificationCheckType.QUALITY_CHECK
-            ]
+                VerificationCheckType.QUALITY_CHECK,
+            ],
         )
 
         # Should not raise - continues with other checks
@@ -899,7 +827,7 @@ class TestVerificationCheckType:
             "COMPLETENESS",
             "ACCURACY",
             "FORMAT_CHECK",
-            "QUALITY_CHECK"
+            "QUALITY_CHECK",
         ]
 
         for check_name in expected:

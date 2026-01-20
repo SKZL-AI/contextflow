@@ -9,25 +9,23 @@ Tests session management functionality including:
 - Session lifecycle
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+
+import pytest
 
 from contextflow.core.session import (
-    SessionManager,
-    Session,
+    CHARS_PER_TOKEN,
     Observation,
     ObservationType,
+    Session,
     SessionContext,
+    SessionManager,
     get_default_session_manager,
     reset_default_session_manager,
-    quick_session,
-    CHARS_PER_TOKEN,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -75,10 +73,7 @@ class TestObservationType:
 
     def test_all_types_exist(self) -> None:
         """Test that all expected observation types exist."""
-        expected = [
-            "TASK", "RESULT", "ERROR", "INSIGHT",
-            "PREFERENCE", "CONTEXT", "VERIFICATION"
-        ]
+        expected = ["TASK", "RESULT", "ERROR", "INSIGHT", "PREFERENCE", "CONTEXT", "VERIFICATION"]
 
         for type_name in expected:
             assert hasattr(ObservationType, type_name)
@@ -101,10 +96,7 @@ class TestObservation:
     def test_observation_creation(self) -> None:
         """Test observation creation with required fields."""
         obs = Observation(
-            id="test-id",
-            session_id="session-id",
-            type=ObservationType.TASK,
-            content="Test content"
+            id="test-id", session_id="session-id", type=ObservationType.TASK, content="Test content"
         )
 
         assert obs.id == "test-id"
@@ -159,10 +151,7 @@ class TestSession:
 
     def test_session_creation(self) -> None:
         """Test session creation."""
-        session = Session(
-            id="session-123",
-            started_at=datetime.utcnow()
-        )
+        session = Session(id="session-123", started_at=datetime.utcnow())
 
         assert session.id == "session-123"
         assert session.is_active is True
@@ -172,36 +161,25 @@ class TestSession:
 
     def test_session_is_active(self) -> None:
         """Test session active status."""
-        active_session = Session(
-            id="active",
-            started_at=datetime.utcnow()
-        )
+        active_session = Session(id="active", started_at=datetime.utcnow())
         assert active_session.is_active is True
 
         ended_session = Session(
-            id="ended",
-            started_at=datetime.utcnow(),
-            ended_at=datetime.utcnow()
+            id="ended", started_at=datetime.utcnow(), ended_at=datetime.utcnow()
         )
         assert ended_session.is_active is False
 
     def test_session_duration(self) -> None:
         """Test session duration calculation."""
         start = datetime.utcnow()
-        session = Session(
-            id="test",
-            started_at=start,
-            ended_at=start + timedelta(seconds=60)
-        )
+        session = Session(id="test", started_at=start, ended_at=start + timedelta(seconds=60))
 
         assert session.duration_seconds == 60.0
 
     def test_session_to_dict(self) -> None:
         """Test session serialization."""
         session = Session(
-            id="test-session",
-            started_at=datetime.utcnow(),
-            metadata={"project": "test"}
+            id="test-session", started_at=datetime.utcnow(), metadata={"project": "test"}
         )
         session_dict = session.to_dict()
 
@@ -254,9 +232,7 @@ class TestSessionManagerInit:
     def test_init_with_custom_params(self, temp_db_path: str) -> None:
         """Test initialization with custom parameters."""
         manager = SessionManager(
-            db_path=temp_db_path,
-            max_observations_per_session=500,
-            compress_threshold_tokens=10000
+            db_path=temp_db_path, max_observations_per_session=500, compress_threshold_tokens=10000
         )
 
         assert manager.max_observations_per_session == 500
@@ -275,9 +251,7 @@ class TestSessionLifecycle:
     @pytest.mark.asyncio
     async def test_start_session(self, session_manager: SessionManager) -> None:
         """Test starting a new session."""
-        session = await session_manager.start_session(
-            metadata={"project": "test"}
-        )
+        session = await session_manager.start_session(metadata={"project": "test"})
 
         assert session.id is not None
         assert session.is_active is True
@@ -294,36 +268,21 @@ class TestSessionLifecycle:
         assert ended.ended_at is not None
 
     @pytest.mark.asyncio
-    async def test_end_session_generates_summary(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_end_session_generates_summary(self, session_manager: SessionManager) -> None:
         """Test that ending a session generates summary."""
         session = await session_manager.start_session()
+        await session_manager.add_observation(session.id, ObservationType.TASK, "Test task")
         await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            "Test task"
-        )
-        await session_manager.add_observation(
-            session.id,
-            ObservationType.INSIGHT,
-            "Important insight"
+            session.id, ObservationType.INSIGHT, "Important insight"
         )
 
-        ended = await session_manager.end_session(
-            session.id,
-            generate_summary=True
-        )
+        ended = await session_manager.end_session(session.id, generate_summary=True)
 
         assert ended.summary is not None
         assert len(ended.summary) > 0
 
     @pytest.mark.asyncio
-    async def test_end_nonexistent_session_raises(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_end_nonexistent_session_raises(self, session_manager: SessionManager) -> None:
         """Test that ending non-existent session raises error."""
         with pytest.raises(ValueError, match="Session not found"):
             await session_manager.end_session("nonexistent-id")
@@ -339,10 +298,7 @@ class TestSessionLifecycle:
         assert retrieved.id == created.id
 
     @pytest.mark.asyncio
-    async def test_get_nonexistent_session(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_get_nonexistent_session(self, session_manager: SessionManager) -> None:
         """Test getting non-existent session returns None."""
         result = await session_manager.get_session("nonexistent")
 
@@ -366,7 +322,7 @@ class TestObservationManagement:
             session.id,
             ObservationType.TASK,
             "Processed the document",
-            metadata={"file": "test.txt"}
+            metadata={"file": "test.txt"},
         )
 
         assert obs.id is not None
@@ -376,73 +332,49 @@ class TestObservationManagement:
         assert obs.token_count > 0
 
     @pytest.mark.asyncio
-    async def test_add_observation_estimates_tokens(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_add_observation_estimates_tokens(self, session_manager: SessionManager) -> None:
         """Test that token count is estimated."""
         session = await session_manager.start_session()
         content = "This is test content for token estimation"
 
-        obs = await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            content
-        )
+        obs = await session_manager.add_observation(session.id, ObservationType.TASK, content)
 
         expected_tokens = len(content) // CHARS_PER_TOKEN
         assert obs.token_count == expected_tokens
 
     @pytest.mark.asyncio
     async def test_add_observation_to_ended_session_raises(
-        self,
-        session_manager: SessionManager
+        self, session_manager: SessionManager
     ) -> None:
         """Test that adding to ended session raises error."""
         session = await session_manager.start_session()
         await session_manager.end_session(session.id)
 
         with pytest.raises(ValueError, match="not active"):
-            await session_manager.add_observation(
-                session.id,
-                ObservationType.TASK,
-                "Should fail"
-            )
+            await session_manager.add_observation(session.id, ObservationType.TASK, "Should fail")
 
     @pytest.mark.asyncio
     async def test_add_observation_to_nonexistent_session_raises(
-        self,
-        session_manager: SessionManager
+        self, session_manager: SessionManager
     ) -> None:
         """Test that adding to non-existent session raises error."""
         with pytest.raises(ValueError, match="Session not found"):
             await session_manager.add_observation(
-                "nonexistent",
-                ObservationType.TASK,
-                "Should fail"
+                "nonexistent", ObservationType.TASK, "Should fail"
             )
 
     @pytest.mark.asyncio
     async def test_get_observations(self, session_manager: SessionManager) -> None:
         """Test getting observations for a session."""
         session = await session_manager.start_session()
-        await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            "Task 1"
-        )
-        await session_manager.add_observation(
-            session.id,
-            ObservationType.INSIGHT,
-            "Insight 1"
-        )
+        await session_manager.add_observation(session.id, ObservationType.TASK, "Task 1")
+        await session_manager.add_observation(session.id, ObservationType.INSIGHT, "Insight 1")
 
         all_obs = await session_manager.get_observations(session.id)
         assert len(all_obs) == 2
 
         tasks_only = await session_manager.get_observations(
-            session.id,
-            obs_type=ObservationType.TASK
+            session.id, obs_type=ObservationType.TASK
         )
         assert len(tasks_only) == 1
 
@@ -456,27 +388,19 @@ class TestContextRetrieval:
     """Tests for relevant context retrieval."""
 
     @pytest.mark.asyncio
-    async def test_get_relevant_context(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_get_relevant_context(self, session_manager: SessionManager) -> None:
         """Test retrieving relevant context."""
         session = await session_manager.start_session()
         await session_manager.add_observation(
-            session.id,
-            ObservationType.INSIGHT,
-            "Python is a programming language"
+            session.id, ObservationType.INSIGHT, "Python is a programming language"
         )
         await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            "Analyzed the Python codebase"
+            session.id, ObservationType.TASK, "Analyzed the Python codebase"
         )
         await session_manager.end_session(session.id)
 
         context = await session_manager.get_relevant_context(
-            query="Python programming",
-            max_tokens=1000
+            query="Python programming", max_tokens=1000
         )
 
         assert isinstance(context, SessionContext)
@@ -484,47 +408,31 @@ class TestContextRetrieval:
         assert context.total_tokens <= 1000
 
     @pytest.mark.asyncio
-    async def test_context_respects_token_limit(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_context_respects_token_limit(self, session_manager: SessionManager) -> None:
         """Test that context respects token limit."""
         session = await session_manager.start_session()
 
         # Add many observations
         for i in range(10):
             await session_manager.add_observation(
-                session.id,
-                ObservationType.TASK,
-                f"Task {i} with some content about topic"
+                session.id, ObservationType.TASK, f"Task {i} with some content about topic"
             )
         await session_manager.end_session(session.id)
 
-        context = await session_manager.get_relevant_context(
-            query="topic",
-            max_tokens=50
-        )
+        context = await session_manager.get_relevant_context(query="topic", max_tokens=50)
 
         assert context.total_tokens <= 50
 
     @pytest.mark.asyncio
-    async def test_context_to_prompt_format(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_context_to_prompt_format(self, session_manager: SessionManager) -> None:
         """Test context formatting for prompts."""
         session = await session_manager.start_session()
         await session_manager.add_observation(
-            session.id,
-            ObservationType.INSIGHT,
-            "Important finding about data"
+            session.id, ObservationType.INSIGHT, "Important finding about data"
         )
         await session_manager.end_session(session.id)
 
-        context = await session_manager.get_relevant_context(
-            query="data finding",
-            max_tokens=500
-        )
+        context = await session_manager.get_relevant_context(query="data finding", max_tokens=500)
 
         formatted = context.to_prompt_format()
 
@@ -552,10 +460,7 @@ class TestSessionListAndSearch:
         assert len(sessions) == 3
 
     @pytest.mark.asyncio
-    async def test_list_sessions_pagination(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_list_sessions_pagination(self, session_manager: SessionManager) -> None:
         """Test session listing with pagination."""
         for i in range(5):
             session = await session_manager.start_session()
@@ -568,27 +473,18 @@ class TestSessionListAndSearch:
         assert len(second_page) == 2
 
     @pytest.mark.asyncio
-    async def test_search_observations(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_search_observations(self, session_manager: SessionManager) -> None:
         """Test searching observations."""
         session = await session_manager.start_session()
         await session_manager.add_observation(
-            session.id,
-            ObservationType.INSIGHT,
-            "Machine learning is powerful"
+            session.id, ObservationType.INSIGHT, "Machine learning is powerful"
         )
         await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            "Database optimization"
+            session.id, ObservationType.TASK, "Database optimization"
         )
         await session_manager.end_session(session.id)
 
-        results = await session_manager.search_observations(
-            query="machine learning"
-        )
+        results = await session_manager.search_observations(query="machine learning")
 
         assert len(results) >= 1
         assert any("machine" in r.content.lower() for r in results)
@@ -606,11 +502,7 @@ class TestSessionDeletion:
     async def test_delete_session(self, session_manager: SessionManager) -> None:
         """Test deleting a session."""
         session = await session_manager.start_session()
-        await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            "Test"
-        )
+        await session_manager.add_observation(session.id, ObservationType.TASK, "Test")
         await session_manager.end_session(session.id)
 
         deleted = await session_manager.delete_session(session.id)
@@ -622,10 +514,7 @@ class TestSessionDeletion:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_delete_nonexistent_session(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_delete_nonexistent_session(self, session_manager: SessionManager) -> None:
         """Test deleting non-existent session."""
         deleted = await session_manager.delete_session("nonexistent")
 
@@ -644,11 +533,7 @@ class TestStatistics:
     async def test_get_stats(self, session_manager: SessionManager) -> None:
         """Test getting statistics."""
         session = await session_manager.start_session()
-        await session_manager.add_observation(
-            session.id,
-            ObservationType.TASK,
-            "Test task"
-        )
+        await session_manager.add_observation(session.id, ObservationType.TASK, "Test task")
 
         stats = session_manager.get_stats()
 
@@ -672,10 +557,7 @@ class TestCleanup:
     """Tests for cleanup operations."""
 
     @pytest.mark.asyncio
-    async def test_cleanup_old_sessions(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_cleanup_old_sessions(self, session_manager: SessionManager) -> None:
         """Test cleaning up old sessions."""
         # Create and end a session
         session = await session_manager.start_session()
@@ -700,8 +582,7 @@ class TestKeywordMatch:
     def test_keyword_match_exact(self, session_manager: SessionManager) -> None:
         """Test exact keyword matching."""
         score = session_manager._keyword_match(
-            query="python programming",
-            content="Python is a programming language"
+            query="python programming", content="Python is a programming language"
         )
 
         assert score > 0
@@ -709,26 +590,20 @@ class TestKeywordMatch:
     def test_keyword_match_no_match(self, session_manager: SessionManager) -> None:
         """Test no keyword match."""
         score = session_manager._keyword_match(
-            query="java",
-            content="Python is a programming language"
+            query="java", content="Python is a programming language"
         )
 
         # No common words
         assert score == 0 or score < 0.5
 
-    def test_keyword_match_phrase_boost(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    def test_keyword_match_phrase_boost(self, session_manager: SessionManager) -> None:
         """Test phrase matching gets boosted."""
         partial_score = session_manager._keyword_match(
-            query="programming language",
-            content="Python is a language for programming tasks"
+            query="programming language", content="Python is a language for programming tasks"
         )
 
         exact_score = session_manager._keyword_match(
-            query="programming language",
-            content="Python is a programming language"
+            query="programming language", content="Python is a programming language"
         )
 
         # Exact phrase should score higher
@@ -780,26 +655,20 @@ class TestSessionContext:
     def test_empty_context_format(self) -> None:
         """Test formatting empty context."""
         context = SessionContext(
-            observations=[],
-            total_tokens=0,
-            sessions_referenced=0,
-            retrieval_query="test"
+            observations=[], total_tokens=0, sessions_referenced=0, retrieval_query="test"
         )
 
         formatted = context.to_prompt_format()
 
         assert formatted == ""
 
-    def test_context_with_observations_format(
-        self,
-        sample_observation: Observation
-    ) -> None:
+    def test_context_with_observations_format(self, sample_observation: Observation) -> None:
         """Test formatting context with observations."""
         context = SessionContext(
             observations=[sample_observation],
             total_tokens=5,
             sessions_referenced=1,
-            retrieval_query="test"
+            retrieval_query="test",
         )
 
         formatted = context.to_prompt_format()
@@ -817,10 +686,7 @@ class TestCompression:
     """Tests for observation compression."""
 
     @pytest.mark.asyncio
-    async def test_compress_observations(
-        self,
-        session_manager: SessionManager
-    ) -> None:
+    async def test_compress_observations(self, session_manager: SessionManager) -> None:
         """Test compressing multiple observations."""
         session = await session_manager.start_session()
 
@@ -831,7 +697,7 @@ class TestCompression:
                 id=f"obs-{i}",
                 session_id=session.id,
                 type=ObservationType.TASK if i % 2 == 0 else ObservationType.RESULT,
-                content=f"Content for observation {i}"
+                content=f"Content for observation {i}",
             )
             observations.append(obs)
 

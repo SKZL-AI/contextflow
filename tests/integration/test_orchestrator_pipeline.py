@@ -16,24 +16,20 @@ Tests the complete process() pipeline with all 10 steps:
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
 import pytest
 
 from contextflow.core.config import ContextFlowConfig
 from contextflow.core.hooks import (
     HookContext,
-    HookType,
     HooksManager,
-    reset_global_hooks_manager,
+    HookType,
 )
 from contextflow.core.orchestrator import ContextFlow, OrchestratorConfig
 from contextflow.core.types import ProcessResult, StrategyType, TaskStatus
-from contextflow.utils.errors import ValidationError, StrategyExecutionError
-
+from contextflow.utils.errors import ValidationError
 
 # =============================================================================
 # Full Pipeline Tests
@@ -102,7 +98,7 @@ class TestFullProcessPipeline:
         configured_contextflow: ContextFlow,
         small_context: str,
         sample_task: str,
-        sample_constraints: List[str],
+        sample_constraints: list[str],
     ) -> None:
         """Test process() with verification constraints."""
         result = await configured_contextflow.process(
@@ -227,8 +223,9 @@ class TestProcessWithVerificationLoop:
             # Should complete but with failed verification
             assert result.status == TaskStatus.COMPLETED
             # Metadata should indicate verification didn't pass
-            assert result.metadata.get("verification_passed", True) is False or \
-                   "max_iterations_reached" in str(result.metadata)
+            assert result.metadata.get(
+                "verification_passed", True
+            ) is False or "max_iterations_reached" in str(result.metadata)
 
         finally:
             await cf.close()
@@ -242,7 +239,7 @@ class TestProcessWithHooks:
         self,
         mock_provider,
         test_config: ContextFlowConfig,
-        hook_tracker: Dict[str, List[HookContext]],
+        hook_tracker: dict[str, list[HookContext]],
         hooks_manager_with_tracking: HooksManager,
     ) -> None:
         """Test that all hooks are called in correct order."""
@@ -438,7 +435,9 @@ class TestProcessErrorHandling:
                 # No context or documents provided
             )
 
-        assert "context" in str(exc_info.value).lower() or "documents" in str(exc_info.value).lower()
+        assert (
+            "context" in str(exc_info.value).lower() or "documents" in str(exc_info.value).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_invalid_strategy_raises_validation_error(
@@ -469,7 +468,7 @@ class TestStreamingPipeline:
         sample_task: str,
     ) -> None:
         """Test that stream() yields content chunks."""
-        chunks: List[str] = []
+        chunks: list[str] = []
 
         async for chunk in configured_contextflow.stream(
             task=sample_task,
@@ -486,7 +485,7 @@ class TestStreamingPipeline:
         self,
         mock_provider,
         test_config: ContextFlowConfig,
-        hook_tracker: Dict[str, List[HookContext]],
+        hook_tracker: dict[str, list[HookContext]],
         hooks_manager_with_tracking: HooksManager,
     ) -> None:
         """Test that streaming also executes lifecycle hooks."""

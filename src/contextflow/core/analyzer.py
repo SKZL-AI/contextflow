@@ -87,44 +87,127 @@ class ContentType(str, Enum):
 # Complexity indicator keywords (from router.py patterns)
 COMPLEXITY_INDICATORS: dict[str, list[str]] = {
     "exhaustive": [
-        "all", "every", "exhaustive", "comprehensive", "complete",
-        "entire", "thorough", "full", "detailed analysis", "in-depth",
-        "everything", "nothing missed", "cover all", "leave nothing out",
+        "all",
+        "every",
+        "exhaustive",
+        "comprehensive",
+        "complete",
+        "entire",
+        "thorough",
+        "full",
+        "detailed analysis",
+        "in-depth",
+        "everything",
+        "nothing missed",
+        "cover all",
+        "leave nothing out",
     ],
     "complex": [
-        "analyze", "compare", "contrast", "evaluate", "synthesize",
-        "explain why", "implications", "how does this relate",
-        "critique", "assess", "investigate", "examine",
-        "multiple aspects", "step by step", "elaborate", "justify",
-        "argue", "prove", "demonstrate", "connect", "patterns",
-        "relationship between", "cause and effect", "impact of",
+        "analyze",
+        "compare",
+        "contrast",
+        "evaluate",
+        "synthesize",
+        "explain why",
+        "implications",
+        "how does this relate",
+        "critique",
+        "assess",
+        "investigate",
+        "examine",
+        "multiple aspects",
+        "step by step",
+        "elaborate",
+        "justify",
+        "argue",
+        "prove",
+        "demonstrate",
+        "connect",
+        "patterns",
+        "relationship between",
+        "cause and effect",
+        "impact of",
     ],
     "moderate": [
-        "summarize", "describe", "explain", "outline", "overview",
-        "key points", "main ideas", "important", "significant",
-        "breakdown", "structure", "organize", "categorize",
+        "summarize",
+        "describe",
+        "explain",
+        "outline",
+        "overview",
+        "key points",
+        "main ideas",
+        "important",
+        "significant",
+        "breakdown",
+        "structure",
+        "organize",
+        "categorize",
     ],
     "simple": [
-        "what is", "who is", "when was", "where is", "list",
-        "name", "define", "identify", "find", "extract",
-        "yes or no", "true or false", "how many", "which one",
-        "simple", "quick", "brief", "short",
+        "what is",
+        "who is",
+        "when was",
+        "where is",
+        "list",
+        "name",
+        "define",
+        "identify",
+        "find",
+        "extract",
+        "yes or no",
+        "true or false",
+        "how many",
+        "which one",
+        "simple",
+        "quick",
+        "brief",
+        "short",
     ],
 }
 
 # Code indicators for content type detection
 CODE_INDICATORS: list[str] = [
-    "```", "def ", "class ", "import ", "function ",
-    "const ", "var ", "let ", "return ", "if (", "for (",
-    "->", "=>", "&&", "||", "==", "!=", "async ", "await ",
-    "public ", "private ", "protected ", "static ",
-    "interface ", "struct ", "enum ", "trait ",
+    "```",
+    "def ",
+    "class ",
+    "import ",
+    "function ",
+    "const ",
+    "var ",
+    "let ",
+    "return ",
+    "if (",
+    "for (",
+    "->",
+    "=>",
+    "&&",
+    "||",
+    "==",
+    "!=",
+    "async ",
+    "await ",
+    "public ",
+    "private ",
+    "protected ",
+    "static ",
+    "interface ",
+    "struct ",
+    "enum ",
+    "trait ",
 ]
 
 # Data indicators
 DATA_INDICATORS: list[str] = [
-    "{", "[", "<", ":", ",",
-    '":', "': ", "null", "true", "false",
+    "{",
+    "[",
+    "<",
+    ":",
+    ",",
+    '":',
+    "': ",
+    "null",
+    "true",
+    "false",
 ]
 
 
@@ -199,9 +282,7 @@ class ContextAnalysis:
             "recommended_strategy": self.recommended_strategy.value,
             "reasoning": self.reasoning,
             "alternative_strategies": [s.value for s in self.alternative_strategies],
-            "estimated_costs": {
-                k: v.model_dump() for k, v in self.estimated_costs.items()
-            },
+            "estimated_costs": {k: v.model_dump() for k, v in self.estimated_costs.items()},
             "chunk_suggestion": (
                 self.chunk_suggestion.model_dump() if self.chunk_suggestion else None
             ),
@@ -395,9 +476,7 @@ class ContextAnalyzer:
         content_type = self._detect_content_type(context)
 
         # Select strategy
-        strategy, reasoning = self._select_strategy(
-            token_count, density, complexity
-        )
+        strategy, reasoning = self._select_strategy(token_count, density, complexity)
 
         # Get alternatives
         alternatives = self._get_alternative_strategies(strategy, token_count)
@@ -644,8 +723,16 @@ class ContextAnalyzer:
 
         # Factor 4: Structure indicators (weight: 0.15)
         structure_indicators = [
-            "|", "- ", "* ", "1.", "##", "###",
-            "<table", "<tr>", "<td>", "| ---",
+            "|",
+            "- ",
+            "* ",
+            "1.",
+            "##",
+            "###",
+            "<table",
+            "<tr>",
+            "<td>",
+            "| ---",
         ]
         structure_matches = sum(text.count(ind) for ind in structure_indicators)
         structure_factor = min(1.0, structure_matches / 20.0)
@@ -661,7 +748,7 @@ class ContextAnalyzer:
 
         # Factor 6: Unique word ratio (weight: 0.2)
         if words:
-            unique_words = set(w.lower() for w in words)
+            unique_words = {w.lower() for w in words}
             unique_ratio = len(unique_words) / len(words)
             unique_factor = unique_ratio
             density_score += unique_factor * 0.2
@@ -1029,9 +1116,7 @@ class ContextAnalyzer:
         warnings: list[str] = []
 
         # Check context size
-        default_limit = MODEL_CONTEXT_LIMITS.get(
-            self._config.default_model, 200_000
-        )
+        default_limit = MODEL_CONTEXT_LIMITS.get(self._config.default_model, 200_000)
         usage_ratio = token_count / default_limit
 
         if usage_ratio > 0.9:
@@ -1041,8 +1126,7 @@ class ContextAnalyzer:
             )
         elif usage_ratio > 0.75:
             warnings.append(
-                f"Context uses {usage_ratio:.0%} of model limit. "
-                "Leave room for output tokens."
+                f"Context uses {usage_ratio:.0%} of model limit. " "Leave room for output tokens."
             )
 
         # Check density + complexity combination
@@ -1147,22 +1231,26 @@ Output your analysis in a structured format."""
         ]
 
         if constraints:
-            prompt_parts.extend([
-                "### Constraints",
-                *[f"- {c}" for c in constraints],
-                "",
-            ])
+            prompt_parts.extend(
+                [
+                    "### Constraints",
+                    *[f"- {c}" for c in constraints],
+                    "",
+                ]
+            )
 
-        prompt_parts.extend([
-            "### Your Analysis",
-            "Please provide:",
-            "1. DENSITY_ASSESSMENT: Is the heuristic density estimate accurate? (yes/no with explanation)",
-            "2. COMPLEXITY_ASSESSMENT: Is the complexity level accurate? (yes/no with explanation)",
-            "3. STRATEGY_RECOMMENDATION: Do you agree with the strategy? If not, what do you recommend?",
-            "4. ADDITIONAL_INSIGHTS: Any other observations about the content?",
-            "",
-            "Format your response with these exact section headers.",
-        ])
+        prompt_parts.extend(
+            [
+                "### Your Analysis",
+                "Please provide:",
+                "1. DENSITY_ASSESSMENT: Is the heuristic density estimate accurate? (yes/no with explanation)",
+                "2. COMPLEXITY_ASSESSMENT: Is the complexity level accurate? (yes/no with explanation)",
+                "3. STRATEGY_RECOMMENDATION: Do you agree with the strategy? If not, what do you recommend?",
+                "4. ADDITIONAL_INSIGHTS: Any other observations about the content?",
+                "",
+                "Format your response with these exact section headers.",
+            ]
+        )
 
         return "\n".join(prompt_parts)
 
@@ -1243,8 +1331,7 @@ Output your analysis in a structured format."""
 
         # Add LLM reasoning
         enhanced.reasoning = (
-            f"{base_analysis.reasoning}\n\n"
-            f"LLM Analysis: {llm_output[:500]}..."
+            f"{base_analysis.reasoning}\n\n" f"LLM Analysis: {llm_output[:500]}..."
             if len(llm_output) > 500
             else f"{base_analysis.reasoning}\n\nLLM Analysis: {llm_output}"
         )
@@ -1267,7 +1354,7 @@ Output your analysis in a structured format."""
         """
         if len(self._cache) >= self._cache_max_size:
             # Remove oldest entries
-            keys_to_remove = list(self._cache.keys())[:self._cache_max_size // 4]
+            keys_to_remove = list(self._cache.keys())[: self._cache_max_size // 4]
             for k in keys_to_remove:
                 del self._cache[k]
 

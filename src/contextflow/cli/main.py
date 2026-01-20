@@ -8,7 +8,7 @@ with subcommands for processing, analysis, and serving.
 from __future__ import annotations
 
 import sys
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -50,6 +50,7 @@ def _get_version() -> str:
     """Get package version."""
     try:
         from contextflow import __version__
+
         return __version__
     except ImportError:
         return "0.1.0"
@@ -65,7 +66,7 @@ def version_callback(value: bool) -> None:
 @app.callback()
 def main(
     version: Annotated[
-        Optional[bool],
+        bool | None,
         typer.Option(
             "--version",
             "-V",
@@ -116,6 +117,7 @@ def info() -> None:
     providers = []
     try:
         from contextflow.providers.factory import list_providers
+
         providers = list_providers()
     except ImportError:
         providers = ["(unable to detect)"]
@@ -125,6 +127,7 @@ def info() -> None:
     # Check configuration
     try:
         from contextflow.core.config import get_config
+
         config = get_config()
         table.add_row("Default Provider", config.default_provider)
         table.add_row("Config Loaded", "[green]Yes[/green]")
@@ -182,39 +185,45 @@ def strategies() -> None:
     console.print()
 
     # GSD
-    console.print(Panel(
-        "[bold]GSD (Get Stuff Done)[/bold]\n\n"
-        "Direct, single-pass processing for small contexts.\n\n"
-        "[cyan]Token Range:[/cyan] < 10,000 tokens\n"
-        "[cyan]Use Case:[/cyan] Quick summaries, simple Q&A, short documents\n"
-        "[cyan]Speed:[/cyan] [green]Fast[/green] (single LLM call)",
-        title="[blue]GSD Strategy[/blue]",
-        expand=False,
-    ))
+    console.print(
+        Panel(
+            "[bold]GSD (Get Stuff Done)[/bold]\n\n"
+            "Direct, single-pass processing for small contexts.\n\n"
+            "[cyan]Token Range:[/cyan] < 10,000 tokens\n"
+            "[cyan]Use Case:[/cyan] Quick summaries, simple Q&A, short documents\n"
+            "[cyan]Speed:[/cyan] [green]Fast[/green] (single LLM call)",
+            title="[blue]GSD Strategy[/blue]",
+            expand=False,
+        )
+    )
     console.print()
 
     # RALPH
-    console.print(Panel(
-        "[bold]RALPH (Relevance-Anchored Linear Processing Heuristic)[/bold]\n\n"
-        "Structured, multi-pass processing for medium contexts.\n\n"
-        "[cyan]Token Range:[/cyan] 10,000 - 100,000 tokens\n"
-        "[cyan]Use Case:[/cyan] Document analysis, code review, detailed summaries\n"
-        "[cyan]Speed:[/cyan] [yellow]Moderate[/yellow] (multiple coordinated calls)",
-        title="[blue]RALPH Strategy[/blue]",
-        expand=False,
-    ))
+    console.print(
+        Panel(
+            "[bold]RALPH (Relevance-Anchored Linear Processing Heuristic)[/bold]\n\n"
+            "Structured, multi-pass processing for medium contexts.\n\n"
+            "[cyan]Token Range:[/cyan] 10,000 - 100,000 tokens\n"
+            "[cyan]Use Case:[/cyan] Document analysis, code review, detailed summaries\n"
+            "[cyan]Speed:[/cyan] [yellow]Moderate[/yellow] (multiple coordinated calls)",
+            title="[blue]RALPH Strategy[/blue]",
+            expand=False,
+        )
+    )
     console.print()
 
     # RLM
-    console.print(Panel(
-        "[bold]RLM (Reasoning through Large Memories)[/bold]\n\n"
-        "Full RAG pipeline with sub-agents for large contexts.\n\n"
-        "[cyan]Token Range:[/cyan] > 100,000 tokens\n"
-        "[cyan]Use Case:[/cyan] Large codebases, multi-document analysis, research\n"
-        "[cyan]Speed:[/cyan] [red]Slower[/red] (RAG indexing + parallel processing)",
-        title="[blue]RLM Strategy[/blue]",
-        expand=False,
-    ))
+    console.print(
+        Panel(
+            "[bold]RLM (Reasoning through Large Memories)[/bold]\n\n"
+            "Full RAG pipeline with sub-agents for large contexts.\n\n"
+            "[cyan]Token Range:[/cyan] > 100,000 tokens\n"
+            "[cyan]Use Case:[/cyan] Large codebases, multi-document analysis, research\n"
+            "[cyan]Speed:[/cyan] [red]Slower[/red] (RAG indexing + parallel processing)",
+            title="[blue]RLM Strategy[/blue]",
+            expand=False,
+        )
+    )
     console.print()
 
     console.print("[dim]Use --strategy/-s auto to let ContextFlow choose automatically.[/dim]")
@@ -230,6 +239,7 @@ def config(
     """Display current configuration."""
     try:
         from contextflow.core.config import get_config
+
         config = get_config()
 
         table = Table(title="ContextFlow Configuration", show_header=True, header_style="bold cyan")
@@ -251,9 +261,9 @@ def config(
             table.add_row("RAG Top K", str(config.rag.top_k))
 
             # Provider configs (without sensitive data)
-            if hasattr(config, 'claude') and config.claude:
+            if hasattr(config, "claude") and config.claude:
                 table.add_row("Claude Model", config.claude.model or "default")
-            if hasattr(config, 'openai') and config.openai:
+            if hasattr(config, "openai") and config.openai:
                 table.add_row("OpenAI Model", config.openai.model or "default")
 
         console.print()

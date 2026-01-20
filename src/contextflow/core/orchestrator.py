@@ -756,9 +756,7 @@ class ContextFlow:
                 density_score=analysis.density,
                 structure_type=analysis.content_type.value,
                 recommended_strategy=analysis.recommended_strategy,
-                estimated_cost=sum(
-                    c.total_cost for c in analysis.estimated_costs.values()
-                )
+                estimated_cost=sum(c.total_cost for c in analysis.estimated_costs.values())
                 / max(len(analysis.estimated_costs), 1),
                 estimated_time_seconds=analysis.token_count / 1000,  # Rough estimate
                 warnings=analysis.warnings,
@@ -950,9 +948,7 @@ class ContextFlow:
 
             # Aggregate results
             successful_results = [r for r in results if r.success]
-            combined_answer = self._aggregate_results(
-                successful_results, aggregation
-            )
+            combined_answer = self._aggregate_results(successful_results, aggregation)
 
             total_tokens = sum(r.token_usage.get("total_tokens", 0) for r in results)
 
@@ -1017,9 +1013,7 @@ class ContextFlow:
                 context=exec_ctx.context,
                 execution_id=exec_ctx.execution_id,
             )
-            hook_result = await self._hooks_manager.execute(
-                HookType.PRE_PROCESS, hook_ctx
-            )
+            hook_result = await self._hooks_manager.execute(HookType.PRE_PROCESS, hook_ctx)
             exec_ctx.add_trajectory_step(
                 "pre_process_hooks",
                 metadata={"hooks_executed": hook_result.hooks_executed},
@@ -1111,9 +1105,7 @@ class ContextFlow:
                 result=strategy_result.answer,
                 execution_id=exec_ctx.execution_id,
             )
-            hook_result = await self._hooks_manager.execute(
-                HookType.POST_STRATEGY, hook_ctx
-            )
+            hook_result = await self._hooks_manager.execute(HookType.POST_STRATEGY, hook_ctx)
             exec_ctx.add_trajectory_step("post_strategy_hooks")
 
             # Allow hooks to modify result
@@ -1241,9 +1233,7 @@ class ContextFlow:
                     context=exec_ctx.context,
                     constraints=constraints,
                     force_strategy=(
-                        exec_ctx.strategy
-                        if exec_ctx.strategy != StrategyType.AUTO
-                        else None
+                        exec_ctx.strategy if exec_ctx.strategy != StrategyType.AUTO else None
                     ),
                     **kwargs,
                 ),

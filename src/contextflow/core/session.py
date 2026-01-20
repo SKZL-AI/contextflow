@@ -149,14 +149,8 @@ class Session:
         return cls(
             id=data["id"],
             started_at=datetime.fromisoformat(data["started_at"]),
-            ended_at=(
-                datetime.fromisoformat(data["ended_at"])
-                if data.get("ended_at")
-                else None
-            ),
-            observations=[
-                Observation.from_dict(obs) for obs in data.get("observations", [])
-            ],
+            ended_at=(datetime.fromisoformat(data["ended_at"]) if data.get("ended_at") else None),
+            observations=[Observation.from_dict(obs) for obs in data.get("observations", [])],
             metadata=data.get("metadata", {}),
             summary=data.get("summary"),
             total_tokens=data.get("total_tokens", 0),
@@ -301,7 +295,8 @@ class SessionManager:
             cursor = conn.cursor()
 
             # Sessions table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS sessions (
                     id TEXT PRIMARY KEY,
                     started_at TEXT NOT NULL,
@@ -310,10 +305,12 @@ class SessionManager:
                     summary TEXT,
                     total_tokens INTEGER DEFAULT 0
                 )
-            """)
+            """
+            )
 
             # Observations table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS observations (
                     id TEXT PRIMARY KEY,
                     session_id TEXT NOT NULL,
@@ -327,31 +324,38 @@ class SessionManager:
                     FOREIGN KEY (session_id) REFERENCES sessions(id)
                         ON DELETE CASCADE
                 )
-            """)
+            """
+            )
 
             # Indexes for efficient retrieval
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_observations_session
                 ON observations(session_id)
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_observations_type
                 ON observations(type)
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_observations_timestamp
                 ON observations(timestamp DESC)
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_sessions_started
                 ON sessions(started_at DESC)
-            """)
+            """
+            )
 
             conn.commit()
 
-    async def start_session(
-        self, metadata: dict[str, Any] | None = None
-    ) -> Session:
+    async def start_session(self, metadata: dict[str, Any] | None = None) -> Session:
         """
         Start a new session.
 
@@ -419,9 +423,7 @@ class SessionManager:
             session.summary = await self._generate_session_summary(session)
 
         # Calculate total tokens
-        session.total_tokens = sum(
-            obs.token_count for obs in session.observations
-        )
+        session.total_tokens = sum(obs.token_count for obs in session.observations)
 
         # Update database
         with self._lock:
@@ -588,11 +590,7 @@ class SessionManager:
         return Session(
             id=row["id"],
             started_at=datetime.fromisoformat(row["started_at"]),
-            ended_at=(
-                datetime.fromisoformat(row["ended_at"])
-                if row["ended_at"]
-                else None
-            ),
+            ended_at=(datetime.fromisoformat(row["ended_at"]) if row["ended_at"] else None),
             observations=observations,
             metadata=json.loads(row["metadata"]),
             summary=row["summary"],
@@ -807,14 +805,8 @@ class SessionManager:
             type_counts[type_name] = type_counts.get(type_name, 0) + 1
 
         # Get insights and important observations
-        insights = [
-            obs for obs in session.observations
-            if obs.type == ObservationType.INSIGHT
-        ]
-        errors = [
-            obs for obs in session.observations
-            if obs.type == ObservationType.ERROR
-        ]
+        insights = [obs for obs in session.observations if obs.type == ObservationType.INSIGHT]
+        errors = [obs for obs in session.observations if obs.type == ObservationType.ERROR]
 
         # Build summary
         parts = []
@@ -883,9 +875,7 @@ class SessionManager:
                 return
 
         # Get non-compressed observations
-        uncompressed = [
-            obs for obs in session.observations if not obs.compressed
-        ]
+        uncompressed = [obs for obs in session.observations if not obs.compressed]
         if len(uncompressed) < 10:  # Minimum batch for compression
             return
 
@@ -1109,9 +1099,7 @@ class SessionManager:
             total_observations = cursor.fetchone()[0]
 
             # Observations by type
-            cursor.execute(
-                "SELECT type, COUNT(*) FROM observations GROUP BY type"
-            )
+            cursor.execute("SELECT type, COUNT(*) FROM observations GROUP BY type")
             by_type = {row[0]: row[1] for row in cursor.fetchall()}
 
             # Total tokens
@@ -1119,9 +1107,7 @@ class SessionManager:
             total_tokens = cursor.fetchone()[0] or 0
 
             # Compressed observations
-            cursor.execute(
-                "SELECT COUNT(*) FROM observations WHERE compressed = 1"
-            )
+            cursor.execute("SELECT COUNT(*) FROM observations WHERE compressed = 1")
             compressed_count = cursor.fetchone()[0]
 
         return {

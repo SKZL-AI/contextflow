@@ -45,7 +45,9 @@ try:
     import faiss
 
     FAISS_AVAILABLE = True
-    logger.debug("FAISS available", version=faiss.__version__ if hasattr(faiss, "__version__") else "unknown")
+    logger.debug(
+        "FAISS available", version=faiss.__version__ if hasattr(faiss, "__version__") else "unknown"
+    )
 except ImportError:
     FAISS_AVAILABLE = False
     faiss = None  # type: ignore
@@ -129,7 +131,9 @@ class RAGDocument:
             content=data["content"],
             summary=data.get("summary"),
             metadata=data.get("metadata", {}),
-            created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(),
+            created_at=datetime.fromisoformat(data["created_at"])
+            if "created_at" in data
+            else datetime.now(),
             chunk_of=data.get("chunk_of"),
             token_count=data.get("token_count", 0),
         )
@@ -171,7 +175,11 @@ class SearchResult:
     rank: int
 
     def __str__(self) -> str:
-        preview = self.document.content[:50] + "..." if len(self.document.content) > 50 else self.document.content
+        preview = (
+            self.document.content[:50] + "..."
+            if len(self.document.content) > 50
+            else self.document.content
+        )
         return f"[{self.rank + 1}] ({self.score:.3f}) {preview}"
 
 
@@ -474,17 +482,21 @@ class TemporaryRAG:
         if doc_ids is None:
             doc_ids = [self._generate_id(c) for c in contents]
         elif len(doc_ids) != n_docs:
-            raise ValueError(f"doc_ids length ({len(doc_ids)}) must match contents length ({n_docs})")
+            raise ValueError(
+                f"doc_ids length ({len(doc_ids)}) must match contents length ({n_docs})"
+            )
 
         # Validate or create metadata
         if metadata is None:
             metadata = [{} for _ in range(n_docs)]
         elif len(metadata) != n_docs:
-            raise ValueError(f"metadata length ({len(metadata)}) must match contents length ({n_docs})")
+            raise ValueError(
+                f"metadata length ({len(metadata)}) must match contents length ({n_docs})"
+            )
 
         # Filter out empty contents
         valid_items: list[tuple[str, str, dict[str, Any]]] = []
-        for content, doc_id, meta in zip(contents, doc_ids, metadata):
+        for content, doc_id, meta in zip(contents, doc_ids, metadata, strict=True):
             if content and content.strip():
                 valid_items.append((content, doc_id, meta))
 
@@ -679,9 +691,7 @@ class TemporaryRAG:
 
         # Filter invalid indices
         result_ids = [
-            self._index_to_id[idx]
-            for idx in ids
-            if idx >= 0 and idx in self._index_to_id
+            self._index_to_id[idx] for idx in ids if idx >= 0 and idx in self._index_to_id
         ]
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
@@ -776,7 +786,9 @@ class TemporaryRAG:
             else:
                 documents.append(doc)
 
-        logger.debug("get_full_documents completed", requested=len(doc_ids), returned=len(documents))
+        logger.debug(
+            "get_full_documents completed", requested=len(doc_ids), returned=len(documents)
+        )
         return documents
 
     # =========================================================================
@@ -814,7 +826,7 @@ class TemporaryRAG:
 
         # Build results
         results: list[SearchResult] = []
-        for rank, (idx, score) in enumerate(zip(indices, scores)):
+        for rank, (idx, score) in enumerate(zip(indices, scores, strict=True)):
             if idx < 0 or idx not in self._index_to_id:
                 continue
 
@@ -1190,10 +1202,7 @@ class TemporaryRAG:
         save_dir.mkdir(parents=True, exist_ok=True)
 
         # Save documents (without embeddings to save space)
-        docs_data = {
-            doc_id: doc.to_dict()
-            for doc_id, doc in self._documents.items()
-        }
+        docs_data = {doc_id: doc.to_dict() for doc_id, doc in self._documents.items()}
         with open(save_dir / "documents.json", "w", encoding="utf-8") as f:
             json.dump(docs_data, f, indent=2)
 

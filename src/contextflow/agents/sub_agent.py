@@ -147,9 +147,7 @@ class AgentResult:
             "execution_time": round(self.execution_time, 4),
             "token_usage": self.token_usage,
             "verification_passed": (
-                self.verification_result.passed
-                if self.verification_result
-                else None
+                self.verification_result.passed if self.verification_result else None
             ),
             "metadata": self.metadata,
             "error": self.error,
@@ -169,7 +167,6 @@ ROLE_PROMPTS: dict[AgentRole, str] = {
 - Be thorough but concise
 
 Format your analysis with clear headings and bullet points where appropriate.""",
-
     AgentRole.SUMMARIZER: """You are an expert summarizer. Your task is to:
 - Create concise, accurate summaries
 - Capture all key points without losing important details
@@ -178,7 +175,6 @@ Format your analysis with clear headings and bullet points where appropriate."""
 - Structure summaries logically
 
 Prioritize clarity and completeness over brevity.""",
-
     AgentRole.EXTRACTOR: """You are an information extraction expert. Your task is to:
 - Extract specific information as requested
 - Be precise and complete in your extraction
@@ -187,7 +183,6 @@ Prioritize clarity and completeness over brevity.""",
 - Note when requested information is not found
 
 Use structured formats (lists, tables) when appropriate.""",
-
     AgentRole.VERIFIER: """You are a verification expert. Your task is to:
 - Verify that outputs match requirements
 - Check for accuracy and completeness
@@ -196,7 +191,6 @@ Use structured formats (lists, tables) when appropriate.""",
 - Suggest specific improvements if verification fails
 
 Be strict but fair in your assessments.""",
-
     AgentRole.CODE_REVIEWER: """You are a code review expert. Your task is to:
 - Review code for correctness and best practices
 - Identify potential bugs, issues, or vulnerabilities
@@ -205,7 +199,6 @@ Be strict but fair in your assessments.""",
 - Consider security concerns
 
 Be specific in your feedback with line references when possible.""",
-
     AgentRole.RESEARCHER: """You are a research expert. Your task is to:
 - Research the topic thoroughly using provided context
 - Gather and organize relevant information
@@ -214,7 +207,6 @@ Be specific in your feedback with line references when possible.""",
 - Cite sources when available
 
 Structure your research with clear sections and evidence.""",
-
     AgentRole.SYNTHESIZER: """You are a synthesis expert. Your task is to:
 - Combine information from multiple sources
 - Identify common themes and important differences
@@ -223,7 +215,6 @@ Structure your research with clear sections and evidence.""",
 - Note unresolved conflicts or ambiguities
 
 Present a balanced view that integrates all perspectives.""",
-
     AgentRole.CUSTOM: """You are a helpful assistant. Complete the task as requested.
 Be thorough, accurate, and format your response clearly.""",
 }
@@ -422,17 +413,13 @@ class SubAgent:
                 ),
                 "output_tokens": self._estimate_tokens(output),
             }
-            token_usage["total_tokens"] = (
-                token_usage["input_tokens"] + token_usage["output_tokens"]
-            )
+            token_usage["total_tokens"] = token_usage["input_tokens"] + token_usage["output_tokens"]
 
             # Verification if enabled
             verification_result: VerificationResult | None = None
             if self._config.enable_verification:
                 self._status = AgentStatus.VERIFYING
-                verification_result = await self._verify_output(
-                    task, output, constraints
-                )
+                verification_result = await self._verify_output(task, output, constraints)
 
                 # Retry loop if verification fails
                 if not verification_result.passed and self._config.max_retries > 0:
@@ -464,9 +451,7 @@ class SubAgent:
                 agent_id=self._name,
                 execution_time=round(execution_time, 3),
                 tokens_used=token_usage["total_tokens"],
-                verification_passed=(
-                    verification_result.passed if verification_result else None
-                ),
+                verification_passed=(verification_result.passed if verification_result else None),
             )
 
             return AgentResult(
@@ -595,9 +580,7 @@ class SubAgent:
         # Format context
         context_parts: list[str] = []
         for i, doc in enumerate(documents):
-            context_parts.append(
-                f"--- Document {i + 1} ---\n{doc.content}\n"
-            )
+            context_parts.append(f"--- Document {i + 1} ---\n{doc.content}\n")
 
         context = "\n".join(context_parts)
         logger.debug(
@@ -630,13 +613,9 @@ class SubAgent:
         user_content_parts: list[str] = []
 
         if context:
-            user_content_parts.append(
-                f"## Context\n\n{context}\n\n"
-            )
+            user_content_parts.append(f"## Context\n\n{context}\n\n")
 
-        user_content_parts.append(
-            f"## Task\n\n{task}"
-        )
+        user_content_parts.append(f"## Task\n\n{task}")
 
         user_content = "".join(user_content_parts)
 
@@ -725,10 +704,7 @@ class SubAgent:
         total_retry_tokens = 0
         retry_count = 0
 
-        while (
-            not current_verification.passed
-            and retry_count < self._config.max_retries
-        ):
+        while not current_verification.passed and retry_count < self._config.max_retries:
             retry_count += 1
 
             logger.debug(
@@ -782,13 +758,15 @@ class SubAgent:
             Improved output
         """
         # Format issues and suggestions
-        issues_text = "\n".join(
-            f"- {issue}" for issue in verification_result.issues
-        ) or "No specific issues identified"
+        issues_text = (
+            "\n".join(f"- {issue}" for issue in verification_result.issues)
+            or "No specific issues identified"
+        )
 
-        suggestions_text = "\n".join(
-            f"- {s}" for s in verification_result.suggestions
-        ) or "No specific suggestions"
+        suggestions_text = (
+            "\n".join(f"- {s}" for s in verification_result.suggestions)
+            or "No specific suggestions"
+        )
 
         # Build retry prompt
         retry_prompt_parts = [
@@ -798,14 +776,16 @@ class SubAgent:
         if context:
             retry_prompt_parts.append(f"## Context\n\n{context}\n")
 
-        retry_prompt_parts.extend([
-            f"## Previous Output\n\n{previous_output}\n",
-            f"## Issues to Address\n\n{issues_text}\n",
-            f"## Suggestions\n\n{suggestions_text}\n",
-            "## Instructions\n\n"
-            "Please provide an improved version that addresses the issues above. "
-            "Maintain the good aspects of the original while fixing the problems.",
-        ])
+        retry_prompt_parts.extend(
+            [
+                f"## Previous Output\n\n{previous_output}\n",
+                f"## Issues to Address\n\n{issues_text}\n",
+                f"## Suggestions\n\n{suggestions_text}\n",
+                "## Instructions\n\n"
+                "Please provide an improved version that addresses the issues above. "
+                "Maintain the good aspects of the original while fixing the problems.",
+            ]
+        )
 
         retry_prompt = "\n".join(retry_prompt_parts)
         messages = [Message(role="user", content=retry_prompt)]
@@ -866,9 +846,7 @@ class SubAgent:
             Dictionary with execution statistics
         """
         avg_execution_time = (
-            self._total_execution_time / self._execution_count
-            if self._execution_count > 0
-            else 0.0
+            self._total_execution_time / self._execution_count if self._execution_count > 0 else 0.0
         )
 
         return {

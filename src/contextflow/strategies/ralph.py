@@ -275,23 +275,17 @@ class RALPHStrategy(BaseStrategy):
         # Validate mode
         valid_modes = ("auto", "iterative", "structured")
         if mode not in valid_modes:
-            raise ValueError(
-                f"Invalid mode '{mode}'. Must be one of: {valid_modes}"
-            )
+            raise ValueError(f"Invalid mode '{mode}'. Must be one of: {valid_modes}")
 
         # Validate chunk settings
         if chunk_size < 500:
-            raise ValueError(
-                f"chunk_size must be at least 500 tokens, got {chunk_size}"
-            )
+            raise ValueError(f"chunk_size must be at least 500 tokens, got {chunk_size}")
         if chunk_overlap < 0 or chunk_overlap >= chunk_size:
             raise ValueError(
                 f"chunk_overlap must be between 0 and chunk_size-1, got {chunk_overlap}"
             )
         if max_parallel_chunks < 1:
-            raise ValueError(
-                f"max_parallel_chunks must be at least 1, got {max_parallel_chunks}"
-            )
+            raise ValueError(f"max_parallel_chunks must be at least 1, got {max_parallel_chunks}")
 
         self._mode = mode
         self._chunk_size = chunk_size
@@ -520,7 +514,9 @@ class RALPHStrategy(BaseStrategy):
 
             # Accumulate high-relevance findings
             if chunk_result.relevance_score >= 0.5:
-                accumulated_context += f"\n[Previous finding from chunk {i}]: {chunk_result.summary}"
+                accumulated_context += (
+                    f"\n[Previous finding from chunk {i}]: {chunk_result.summary}"
+                )
 
             logger.debug(
                 "Chunk processed",
@@ -844,9 +840,7 @@ class RALPHStrategy(BaseStrategy):
         results: list[ChunkResult] = []
         semaphore = asyncio.Semaphore(self._max_parallel_chunks)
 
-        async def process_with_semaphore(
-            chunk: str, idx: int
-        ) -> ChunkResult:
+        async def process_with_semaphore(chunk: str, idx: int) -> ChunkResult:
             async with semaphore:
                 return await self._process_chunk(
                     chunk=chunk,
@@ -857,10 +851,7 @@ class RALPHStrategy(BaseStrategy):
                 )
 
         # Create tasks for all chunks
-        tasks = [
-            process_with_semaphore(chunk, idx)
-            for idx, chunk in enumerate(chunks)
-        ]
+        tasks = [process_with_semaphore(chunk, idx) for idx, chunk in enumerate(chunks)]
 
         # Gather results, handling exceptions
         chunk_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -915,7 +906,9 @@ class RALPHStrategy(BaseStrategy):
         summaries_text = ""
         for cr in chunk_results:
             if cr.relevance_score > 0.2:  # Include semi-relevant chunks
-                summaries_text += f"\n=== Chunk {cr.chunk_id + 1} (Relevance: {cr.relevance_score:.2f}) ===\n"
+                summaries_text += (
+                    f"\n=== Chunk {cr.chunk_id + 1} (Relevance: {cr.relevance_score:.2f}) ===\n"
+                )
                 summaries_text += f"Summary: {cr.summary}\n"
                 if cr.key_points:
                     summaries_text += "Key Points:\n"
@@ -925,9 +918,7 @@ class RALPHStrategy(BaseStrategy):
         # Build constraints text
         constraints_text = ""
         if constraints:
-            constraints_text = "CONSTRAINTS:\n" + "\n".join(
-                f"- {c}" for c in constraints
-            )
+            constraints_text = "CONSTRAINTS:\n" + "\n".join(f"- {c}" for c in constraints)
 
         prompt = RALPH_SYNTHESIS_PROMPT.format(
             task=task,
@@ -1007,9 +998,7 @@ class RALPHStrategy(BaseStrategy):
         # Build constraints text
         constraints_text = ""
         if constraints:
-            constraints_text = "CONSTRAINTS:\n" + "\n".join(
-                f"- {c}" for c in constraints
-            )
+            constraints_text = "CONSTRAINTS:\n" + "\n".join(f"- {c}" for c in constraints)
 
         prompt = RALPH_SYNTHESIS_PROMPT.format(
             task=task,
@@ -1146,10 +1135,9 @@ class RALPHStrategy(BaseStrategy):
         output_cost_per_k = pricing["output"]
 
         # Calculate costs
-        expected_cost = (
-            (estimated_input / 1000) * input_cost_per_k
-            + (estimated_output / 1000) * output_cost_per_k
-        )
+        expected_cost = (estimated_input / 1000) * input_cost_per_k + (
+            estimated_output / 1000
+        ) * output_cost_per_k
 
         # Min/max ranges
         min_cost = expected_cost * 0.7
@@ -1297,20 +1285,20 @@ class RALPHStrategy(BaseStrategy):
 
         # Simple heuristics for density
         lines = text.split("\n")
-        non_empty_lines = [l for l in lines if l.strip()]
+        non_empty_lines = [line for line in lines if line.strip()]
 
         if not non_empty_lines:
             return 0.0
 
         # Factors that indicate density
-        avg_line_length = sum(len(l) for l in non_empty_lines) / len(non_empty_lines)
+        avg_line_length = sum(len(line) for line in non_empty_lines) / len(non_empty_lines)
         has_structure = any(
-            l.strip().startswith(("- ", "* ", "1.", "#", "|"))
-            for l in non_empty_lines
+            line.strip().startswith(("- ", "* ", "1.", "#", "|")) for line in non_empty_lines
         )
         code_blocks = text.count("```")
         data_indicators = sum(
-            1 for keyword in ["table", "data", "figure", "chart", "result"]
+            1
+            for keyword in ["table", "data", "figure", "chart", "result"]
             if keyword.lower() in text.lower()
         )
 
@@ -1375,10 +1363,7 @@ class RALPHStrategy(BaseStrategy):
             Cost in USD
         """
         pricing = self._get_model_pricing(model)
-        return (
-            (input_tokens / 1000) * pricing["input"]
-            + (output_tokens / 1000) * pricing["output"]
-        )
+        return (input_tokens / 1000) * pricing["input"] + (output_tokens / 1000) * pricing["output"]
 
     def _extract_tag_content(self, text: str, tag: str) -> str:
         """

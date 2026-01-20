@@ -10,27 +10,27 @@ Tests context analysis functionality including:
 - Caching behavior
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from contextflow.core.analyzer import (
-    ContextAnalyzer,
+    COMPLEXITY_INDICATORS,
     AnalyzerConfig,
-    ContextAnalysis,
-    ComplexityLevel,
-    DensityLevel,
-    ContentType,
     ChunkSuggestion,
+    ComplexityLevel,
+    ContentType,
+    ContextAnalysis,
+    ContextAnalyzer,
     CostEstimate,
+    DensityLevel,
     analyze_context,
     analyze_context_async,
-    get_recommended_strategy,
     estimate_analysis_cost,
-    COMPLEXITY_INDICATORS,
+    get_recommended_strategy,
 )
 from contextflow.core.types import StrategyType
 from contextflow.utils.errors import ValidationError
-
 
 # =============================================================================
 # Fixtures
@@ -117,7 +117,7 @@ def prose_content() -> str:
 @pytest.fixture
 def data_content() -> str:
     """Sample structured data content for testing."""
-    return '''
+    return """
 {
     "users": [
         {"id": 1, "name": "Alice", "active": true, "score": 95.5},
@@ -130,7 +130,7 @@ def data_content() -> str:
         "records": 3
     }
 }
-'''
+"""
 
 
 # =============================================================================
@@ -266,9 +266,7 @@ class TestDensityEstimation:
         assert density < 0.5
 
     def test_code_higher_density(
-        self,
-        default_analyzer: ContextAnalyzer,
-        code_content: str
+        self, default_analyzer: ContextAnalyzer, code_content: str
     ) -> None:
         """Test that code content has higher density."""
         density = default_analyzer._estimate_density(code_content)
@@ -277,9 +275,7 @@ class TestDensityEstimation:
         assert density > 0.3
 
     def test_density_in_valid_range(
-        self,
-        default_analyzer: ContextAnalyzer,
-        prose_content: str
+        self, default_analyzer: ContextAnalyzer, prose_content: str
     ) -> None:
         """Test that density is always in [0, 1] range."""
         density = default_analyzer._estimate_density(prose_content)
@@ -343,7 +339,11 @@ class TestComplexityAssessment:
 
         for task in complex_tasks:
             complexity = default_analyzer._assess_complexity(task)
-            assert complexity in [ComplexityLevel.MODERATE, ComplexityLevel.COMPLEX, ComplexityLevel.EXHAUSTIVE]
+            assert complexity in [
+                ComplexityLevel.MODERATE,
+                ComplexityLevel.COMPLEX,
+                ComplexityLevel.EXHAUSTIVE,
+            ]
 
     def test_exhaustive_task(self, default_analyzer: ContextAnalyzer) -> None:
         """Test exhaustive task complexity."""
@@ -353,17 +353,19 @@ class TestComplexityAssessment:
 
         assert complexity == ComplexityLevel.EXHAUSTIVE
 
-    def test_constraints_increase_complexity(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_constraints_increase_complexity(self, default_analyzer: ContextAnalyzer) -> None:
         """Test that constraints increase complexity assessment."""
         task = "Summarize the document"
 
         complexity_no_constraints = default_analyzer._assess_complexity(task, None)
         complexity_with_constraints = default_analyzer._assess_complexity(
             task,
-            ["Must be under 500 words", "Include all key points", "Use bullet points", "Be technical"]
+            [
+                "Must be under 500 words",
+                "Include all key points",
+                "Use bullet points",
+                "Be technical",
+            ],
         )
 
         # With many constraints, complexity should increase
@@ -374,7 +376,10 @@ class TestComplexityAssessment:
             ComplexityLevel.EXHAUSTIVE: 4,
         }
 
-        assert complexity_values[complexity_with_constraints] >= complexity_values[complexity_no_constraints]
+        assert (
+            complexity_values[complexity_with_constraints]
+            >= complexity_values[complexity_no_constraints]
+        )
 
 
 # =============================================================================
@@ -385,31 +390,19 @@ class TestComplexityAssessment:
 class TestContentTypeDetection:
     """Tests for content type detection."""
 
-    def test_detect_code(
-        self,
-        default_analyzer: ContextAnalyzer,
-        code_content: str
-    ) -> None:
+    def test_detect_code(self, default_analyzer: ContextAnalyzer, code_content: str) -> None:
         """Test detection of code content."""
         content_type = default_analyzer._detect_content_type(code_content)
 
         assert content_type in [ContentType.CODE, ContentType.MIXED]
 
-    def test_detect_data(
-        self,
-        default_analyzer: ContextAnalyzer,
-        data_content: str
-    ) -> None:
+    def test_detect_data(self, default_analyzer: ContextAnalyzer, data_content: str) -> None:
         """Test detection of data content."""
         content_type = default_analyzer._detect_content_type(data_content)
 
         assert content_type in [ContentType.DATA, ContentType.MIXED]
 
-    def test_detect_prose(
-        self,
-        default_analyzer: ContextAnalyzer,
-        prose_content: str
-    ) -> None:
+    def test_detect_prose(self, default_analyzer: ContextAnalyzer, prose_content: str) -> None:
         """Test detection of prose content."""
         content_type = default_analyzer._detect_content_type(prose_content)
 
@@ -433,9 +426,7 @@ class TestStrategySelection:
     def test_small_context_gsd(self, default_analyzer: ContextAnalyzer) -> None:
         """Test small context selects GSD."""
         strategy, reasoning = default_analyzer._select_strategy(
-            token_count=5000,
-            density=0.5,
-            complexity=ComplexityLevel.SIMPLE
+            token_count=5000, density=0.5, complexity=ComplexityLevel.SIMPLE
         )
 
         assert strategy == StrategyType.GSD_DIRECT
@@ -443,9 +434,7 @@ class TestStrategySelection:
     def test_medium_context_ralph(self, default_analyzer: ContextAnalyzer) -> None:
         """Test medium context selects RALPH."""
         strategy, reasoning = default_analyzer._select_strategy(
-            token_count=30000,
-            density=0.5,
-            complexity=ComplexityLevel.MODERATE
+            token_count=30000, density=0.5, complexity=ComplexityLevel.MODERATE
         )
 
         assert strategy == StrategyType.RALPH_STRUCTURED
@@ -453,9 +442,7 @@ class TestStrategySelection:
     def test_large_context_rlm(self, default_analyzer: ContextAnalyzer) -> None:
         """Test large context selects RLM."""
         strategy, reasoning = default_analyzer._select_strategy(
-            token_count=150000,
-            density=0.5,
-            complexity=ComplexityLevel.COMPLEX
+            token_count=150000, density=0.5, complexity=ComplexityLevel.COMPLEX
         )
 
         assert strategy in [StrategyType.RLM_FULL, StrategyType.RLM_DENSE]
@@ -463,9 +450,7 @@ class TestStrategySelection:
     def test_reasoning_included(self, default_analyzer: ContextAnalyzer) -> None:
         """Test that reasoning string is included."""
         strategy, reasoning = default_analyzer._select_strategy(
-            token_count=5000,
-            density=0.5,
-            complexity=ComplexityLevel.SIMPLE
+            token_count=5000, density=0.5, complexity=ComplexityLevel.SIMPLE
         )
 
         assert len(reasoning) > 0
@@ -481,15 +466,10 @@ class TestFullAnalysis:
     """Tests for full context analysis."""
 
     def test_analyze_returns_context_analysis(
-        self,
-        default_analyzer: ContextAnalyzer,
-        prose_content: str
+        self, default_analyzer: ContextAnalyzer, prose_content: str
     ) -> None:
         """Test that analyze returns ContextAnalysis object."""
-        analysis = default_analyzer.analyze(
-            task="Summarize this text",
-            context=prose_content
-        )
+        analysis = default_analyzer.analyze(task="Summarize this text", context=prose_content)
 
         assert isinstance(analysis, ContextAnalysis)
         assert analysis.token_count > 0
@@ -497,32 +477,19 @@ class TestFullAnalysis:
         assert analysis.recommended_strategy is not None
         assert len(analysis.reasoning) > 0
 
-    def test_analyze_validates_empty_task(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_analyze_validates_empty_task(self, default_analyzer: ContextAnalyzer) -> None:
         """Test that empty task raises ValidationError."""
         with pytest.raises(ValidationError):
             default_analyzer.analyze(task="", context="Some context")
 
-    def test_analyze_validates_empty_context(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_analyze_validates_empty_context(self, default_analyzer: ContextAnalyzer) -> None:
         """Test that empty context raises ValidationError."""
         with pytest.raises(ValidationError):
             default_analyzer.analyze(task="Do something", context="")
 
-    def test_analysis_to_dict(
-        self,
-        default_analyzer: ContextAnalyzer,
-        prose_content: str
-    ) -> None:
+    def test_analysis_to_dict(self, default_analyzer: ContextAnalyzer, prose_content: str) -> None:
         """Test analysis serialization to dictionary."""
-        analysis = default_analyzer.analyze(
-            task="Summarize",
-            context=prose_content
-        )
+        analysis = default_analyzer.analyze(task="Summarize", context=prose_content)
         analysis_dict = analysis.to_dict()
 
         assert "token_count" in analysis_dict
@@ -543,14 +510,11 @@ class TestChunkSuggestion:
     """Tests for chunking suggestions."""
 
     def test_chunk_suggestion_structure(
-        self,
-        default_analyzer: ContextAnalyzer,
-        code_content: str
+        self, default_analyzer: ContextAnalyzer, code_content: str
     ) -> None:
         """Test chunk suggestion has correct structure."""
         suggestion = default_analyzer._suggest_chunking(
-            token_count=10000,
-            content_type=ContentType.CODE
+            token_count=10000, content_type=ContentType.CODE
         )
 
         assert isinstance(suggestion, ChunkSuggestion)
@@ -581,14 +545,10 @@ class TestChunkSuggestion:
 class TestCostEstimation:
     """Tests for cost estimation."""
 
-    def test_cost_estimate_structure(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_cost_estimate_structure(self, default_analyzer: ContextAnalyzer) -> None:
         """Test cost estimate has correct structure."""
         costs = default_analyzer._estimate_costs(
-            token_count=10000,
-            strategy=StrategyType.GSD_DIRECT
+            token_count=10000, strategy=StrategyType.GSD_DIRECT
         )
 
         # Should have at least one model estimated
@@ -609,29 +569,19 @@ class TestCostEstimation:
 class TestWarningsGeneration:
     """Tests for warning generation."""
 
-    def test_large_context_warning(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_large_context_warning(self, default_analyzer: ContextAnalyzer) -> None:
         """Test warning generated for very large context."""
         warnings = default_analyzer._generate_warnings(
-            token_count=600000,
-            density=0.5,
-            complexity=ComplexityLevel.MODERATE
+            token_count=600000, density=0.5, complexity=ComplexityLevel.MODERATE
         )
 
         assert len(warnings) > 0
         assert any("large" in w.lower() for w in warnings)
 
-    def test_high_density_complex_warning(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_high_density_complex_warning(self, default_analyzer: ContextAnalyzer) -> None:
         """Test warning for high density + complex task combination."""
         warnings = default_analyzer._generate_warnings(
-            token_count=50000,
-            density=0.85,
-            complexity=ComplexityLevel.COMPLEX
+            token_count=50000, density=0.85, complexity=ComplexityLevel.COMPLEX
         )
 
         assert len(warnings) > 0
@@ -645,10 +595,7 @@ class TestWarningsGeneration:
 class TestCaching:
     """Tests for analysis caching."""
 
-    def test_cache_hit(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_cache_hit(self, default_analyzer: ContextAnalyzer) -> None:
         """Test that same input returns cached result."""
         task = "Summarize this"
         context = "Some context content here."
@@ -662,10 +609,7 @@ class TestCaching:
         # Should be same object from cache
         assert analysis1 is analysis2
 
-    def test_cache_bypass(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    def test_cache_bypass(self, default_analyzer: ContextAnalyzer) -> None:
         """Test that cache can be bypassed."""
         task = "Summarize this"
         context = "Some context content here."
@@ -725,15 +669,10 @@ class TestAsyncAnalysis:
     """Tests for async analysis methods."""
 
     @pytest.mark.asyncio
-    async def test_analyze_async_without_llm(
-        self,
-        default_analyzer: ContextAnalyzer
-    ) -> None:
+    async def test_analyze_async_without_llm(self, default_analyzer: ContextAnalyzer) -> None:
         """Test async analysis without LLM."""
         analysis = await default_analyzer.analyze_async(
-            task="Summarize",
-            context="Content to analyze" * 50,
-            use_llm=False
+            task="Summarize", context="Content to analyze" * 50, use_llm=False
         )
 
         assert isinstance(analysis, ContextAnalysis)
@@ -750,29 +689,19 @@ class TestConvenienceFunctions:
 
     def test_analyze_context_function(self) -> None:
         """Test standalone analyze_context function."""
-        analysis = analyze_context(
-            task="Summarize",
-            context="Some content to analyze. " * 100
-        )
+        analysis = analyze_context(task="Summarize", context="Some content to analyze. " * 100)
 
         assert isinstance(analysis, ContextAnalysis)
 
     def test_get_recommended_strategy_function(self) -> None:
         """Test standalone get_recommended_strategy function."""
-        strategy = get_recommended_strategy(
-            token_count=5000,
-            density=0.5,
-            complexity="moderate"
-        )
+        strategy = get_recommended_strategy(token_count=5000, density=0.5, complexity="moderate")
 
         assert strategy == StrategyType.GSD_DIRECT
 
     def test_estimate_analysis_cost_function(self) -> None:
         """Test standalone cost estimation function."""
-        estimate = estimate_analysis_cost(
-            token_count=10000,
-            model="claude-3-5-sonnet-20241022"
-        )
+        estimate = estimate_analysis_cost(token_count=10000, model="claude-3-5-sonnet-20241022")
 
         assert isinstance(estimate, CostEstimate)
         assert estimate.total_cost >= 0
@@ -781,9 +710,7 @@ class TestConvenienceFunctions:
     async def test_analyze_context_async_function(self) -> None:
         """Test standalone async analysis function."""
         analysis = await analyze_context_async(
-            task="Summarize",
-            context="Content here. " * 100,
-            use_llm=False
+            task="Summarize", context="Content here. " * 100, use_llm=False
         )
 
         assert isinstance(analysis, ContextAnalysis)

@@ -485,12 +485,14 @@ class VLLMProvider(BaseProvider):
             Dictionary with model and server configuration details.
         """
         base_info = super().get_model_info()
-        base_info.update({
-            "batch_size": self.batch_size,
-            "tensor_parallel_size": self.tensor_parallel_size,
-            "base_url": self.base_url,
-            "self_hosted": True,
-        })
+        base_info.update(
+            {
+                "batch_size": self.batch_size,
+                "tensor_parallel_size": self.tensor_parallel_size,
+                "base_url": self.base_url,
+                "self_hosted": True,
+            }
+        )
         return base_info
 
     async def __aenter__(self) -> VLLMProvider:

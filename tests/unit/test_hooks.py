@@ -11,29 +11,25 @@ Tests lifecycle hooks functionality including:
 """
 
 import asyncio
-import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from contextflow.core.hooks import (
+    HookContext,
+    HookExecutionResult,
     HooksManager,
     HookType,
-    HookContext,
     RegisteredHook,
-    HookExecutionResult,
-    get_global_hooks_manager,
-    reset_global_hooks_manager,
-    pre_process,
-    post_process,
-    pre_strategy,
-    post_strategy,
-    on_error,
-    on_verification_fail,
+    compose_hooks,
     create_logging_hook,
     create_timing_hook,
-    compose_hooks,
+    get_global_hooks_manager,
+    on_error,
+    post_process,
+    pre_process,
+    reset_global_hooks_manager,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -61,27 +57,33 @@ def sample_context() -> HookContext:
 @pytest.fixture
 def sync_hook():
     """Create a synchronous hook callback."""
+
     def hook(ctx: HookContext) -> HookContext:
         ctx.metadata["sync_executed"] = True
         return ctx
+
     return hook
 
 
 @pytest.fixture
 def async_hook():
     """Create an asynchronous hook callback."""
+
     async def hook(ctx: HookContext) -> HookContext:
         await asyncio.sleep(0.01)
         ctx.metadata["async_executed"] = True
         return ctx
+
     return hook
 
 
 @pytest.fixture
 def failing_hook():
     """Create a hook that raises an exception."""
+
     def hook(ctx: HookContext) -> HookContext:
         raise ValueError("Hook failed intentionally")
+
     return hook
 
 
@@ -153,10 +155,7 @@ class TestHookContext:
 
     def test_context_with_updates(self, sample_context: HookContext) -> None:
         """Test creating context with updated fields."""
-        updated = sample_context.with_updates(
-            task="Updated task",
-            strategy="ralph_structured"
-        )
+        updated = sample_context.with_updates(task="Updated task", strategy="ralph_structured")
 
         assert updated.task == "Updated task"
         assert updated.strategy == "ralph_structured"
@@ -177,10 +176,7 @@ class TestHookContext:
     def test_context_truncates_long_content(self) -> None:
         """Test that long content is truncated in to_dict."""
         long_context = "x" * 1000
-        ctx = HookContext(
-            hook_type=HookType.PRE_PROCESS,
-            context=long_context
-        )
+        ctx = HookContext(hook_type=HookType.PRE_PROCESS, context=long_context)
         ctx_dict = ctx.to_dict()
 
         # Should be truncated
@@ -198,11 +194,7 @@ class TestRegisteredHook:
 
     def test_registered_hook_creation(self, sync_hook) -> None:
         """Test registered hook creation."""
-        hook = RegisteredHook(
-            callback=sync_hook,
-            priority=50,
-            name="test_hook"
-        )
+        hook = RegisteredHook(callback=sync_hook, priority=50, name="test_hook")
 
         assert hook.callback == sync_hook
         assert hook.priority == 50
@@ -234,17 +226,10 @@ class TestRegisteredHook:
 class TestHookRegistration:
     """Tests for hook registration."""
 
-    def test_register_sync_hook(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook
-    ) -> None:
+    def test_register_sync_hook(self, hooks_manager: HooksManager, sync_hook) -> None:
         """Test registering a synchronous hook."""
         registered = hooks_manager.register(
-            HookType.PRE_PROCESS,
-            sync_hook,
-            priority=50,
-            name="my_sync_hook"
+            HookType.PRE_PROCESS, sync_hook, priority=50, name="my_sync_hook"
         )
 
         assert isinstance(registered, RegisteredHook)
@@ -254,48 +239,29 @@ class TestHookRegistration:
         hooks = hooks_manager.get_hooks(HookType.PRE_PROCESS)
         assert len(hooks) == 1
 
-    def test_register_async_hook(
-        self,
-        hooks_manager: HooksManager,
-        async_hook
-    ) -> None:
+    def test_register_async_hook(self, hooks_manager: HooksManager, async_hook) -> None:
         """Test registering an asynchronous hook."""
-        registered = hooks_manager.register(
-            HookType.POST_PROCESS,
-            async_hook,
-            name="my_async_hook"
-        )
+        registered = hooks_manager.register(HookType.POST_PROCESS, async_hook, name="my_async_hook")
 
         assert registered.name == "my_async_hook"
 
-    def test_register_with_tags(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook
-    ) -> None:
+    def test_register_with_tags(self, hooks_manager: HooksManager, sync_hook) -> None:
         """Test registering hook with tags."""
         registered = hooks_manager.register(
-            HookType.PRE_PROCESS,
-            sync_hook,
-            tags={"logging", "debug"}
+            HookType.PRE_PROCESS, sync_hook, tags={"logging", "debug"}
         )
 
         assert "logging" in registered.tags
         assert "debug" in registered.tags
 
-    def test_register_invalid_callback_raises(
-        self,
-        hooks_manager: HooksManager
-    ) -> None:
+    def test_register_invalid_callback_raises(self, hooks_manager: HooksManager) -> None:
         """Test that non-callable raises ValueError."""
         with pytest.raises(ValueError, match="callable"):
             hooks_manager.register(HookType.PRE_PROCESS, "not a function")
 
-    def test_register_decorator(
-        self,
-        hooks_manager: HooksManager
-    ) -> None:
+    def test_register_decorator(self, hooks_manager: HooksManager) -> None:
         """Test decorator-style registration."""
+
         @hooks_manager.register_decorator(HookType.PRE_PROCESS, priority=10)
         def my_hook(ctx: HookContext) -> HookContext:
             return ctx
@@ -312,11 +278,7 @@ class TestHookRegistration:
 class TestHookUnregistration:
     """Tests for hook unregistration."""
 
-    def test_unregister_by_callback(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook
-    ) -> None:
+    def test_unregister_by_callback(self, hooks_manager: HooksManager, sync_hook) -> None:
         """Test unregistering by callback reference."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
 
@@ -325,11 +287,7 @@ class TestHookUnregistration:
         assert removed == 1
         assert len(hooks_manager.get_hooks(HookType.PRE_PROCESS)) == 0
 
-    def test_unregister_by_name(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook
-    ) -> None:
+    def test_unregister_by_name(self, hooks_manager: HooksManager, sync_hook) -> None:
         """Test unregistering by name."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook, name="to_remove")
 
@@ -337,20 +295,12 @@ class TestHookUnregistration:
 
         assert removed == 1
 
-    def test_unregister_requires_callback_or_name(
-        self,
-        hooks_manager: HooksManager
-    ) -> None:
+    def test_unregister_requires_callback_or_name(self, hooks_manager: HooksManager) -> None:
         """Test that unregister requires callback or name."""
         with pytest.raises(ValueError):
             hooks_manager.unregister(HookType.PRE_PROCESS)
 
-    def test_unregister_all(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        async_hook
-    ) -> None:
+    def test_unregister_all(self, hooks_manager: HooksManager, sync_hook, async_hook) -> None:
         """Test unregistering all hooks."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
         hooks_manager.register(HookType.POST_PROCESS, async_hook)
@@ -362,10 +312,7 @@ class TestHookUnregistration:
         assert len(hooks_manager.get_hooks(HookType.POST_PROCESS)) == 0
 
     def test_unregister_all_specific_type(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        async_hook
+        self, hooks_manager: HooksManager, sync_hook, async_hook
     ) -> None:
         """Test unregistering all hooks of a specific type."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
@@ -386,14 +333,17 @@ class TestHookUnregistration:
 class TestPriorityOrdering:
     """Tests for priority-based hook ordering."""
 
-    def test_hooks_sorted_by_priority(
-        self,
-        hooks_manager: HooksManager
-    ) -> None:
+    def test_hooks_sorted_by_priority(self, hooks_manager: HooksManager) -> None:
         """Test that hooks are sorted by priority (lowest first)."""
-        def hook_a(ctx): return ctx
-        def hook_b(ctx): return ctx
-        def hook_c(ctx): return ctx
+
+        def hook_a(ctx):
+            return ctx
+
+        def hook_b(ctx):
+            return ctx
+
+        def hook_c(ctx):
+            return ctx
 
         hooks_manager.register(HookType.PRE_PROCESS, hook_a, priority=100, name="a")
         hooks_manager.register(HookType.PRE_PROCESS, hook_b, priority=50, name="b")
@@ -407,9 +357,7 @@ class TestPriorityOrdering:
 
     @pytest.mark.asyncio
     async def test_execution_order_by_priority(
-        self,
-        hooks_manager: HooksManager,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sample_context: HookContext
     ) -> None:
         """Test that hooks execute in priority order."""
         execution_order = []
@@ -445,10 +393,7 @@ class TestHookExecution:
 
     @pytest.mark.asyncio
     async def test_execute_sync_hook(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sync_hook, sample_context: HookContext
     ) -> None:
         """Test executing a synchronous hook."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
@@ -461,10 +406,7 @@ class TestHookExecution:
 
     @pytest.mark.asyncio
     async def test_execute_async_hook(
-        self,
-        hooks_manager: HooksManager,
-        async_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, async_hook, sample_context: HookContext
     ) -> None:
         """Test executing an asynchronous hook."""
         hooks_manager.register(HookType.PRE_PROCESS, async_hook)
@@ -476,9 +418,7 @@ class TestHookExecution:
 
     @pytest.mark.asyncio
     async def test_execute_no_hooks(
-        self,
-        hooks_manager: HooksManager,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sample_context: HookContext
     ) -> None:
         """Test execution with no hooks registered."""
         result = await hooks_manager.execute(HookType.PRE_PROCESS, sample_context)
@@ -488,18 +428,12 @@ class TestHookExecution:
 
     @pytest.mark.asyncio
     async def test_execute_simple(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sync_hook, sample_context: HookContext
     ) -> None:
         """Test execute_simple returns just the context."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
 
-        result_ctx = await hooks_manager.execute_simple(
-            HookType.PRE_PROCESS,
-            sample_context
-        )
+        result_ctx = await hooks_manager.execute_simple(HookType.PRE_PROCESS, sample_context)
 
         assert isinstance(result_ctx, HookContext)
         assert result_ctx.metadata.get("sync_executed") is True
@@ -515,11 +449,7 @@ class TestErrorIsolation:
 
     @pytest.mark.asyncio
     async def test_failing_hook_continues_execution(
-        self,
-        hooks_manager: HooksManager,
-        failing_hook,
-        sync_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, failing_hook, sync_hook, sample_context: HookContext
     ) -> None:
         """Test that a failing hook doesn't stop other hooks."""
         hooks_manager.register(HookType.PRE_PROCESS, failing_hook, priority=10)
@@ -528,26 +458,20 @@ class TestErrorIsolation:
         result = await hooks_manager.execute(HookType.PRE_PROCESS, sample_context)
 
         assert result.hooks_executed == 1  # sync_hook succeeded
-        assert result.hooks_skipped == 1   # failing_hook failed
+        assert result.hooks_skipped == 1  # failing_hook failed
         assert result.had_errors is True
         assert len(result.errors) == 1
 
     @pytest.mark.asyncio
     async def test_stop_on_error_flag(
-        self,
-        hooks_manager: HooksManager,
-        failing_hook,
-        sync_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, failing_hook, sync_hook, sample_context: HookContext
     ) -> None:
         """Test stop_on_error flag stops execution."""
         hooks_manager.register(HookType.PRE_PROCESS, failing_hook, priority=10)
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook, priority=20)
 
         result = await hooks_manager.execute(
-            HookType.PRE_PROCESS,
-            sample_context,
-            stop_on_error=True
+            HookType.PRE_PROCESS, sample_context, stop_on_error=True
         )
 
         # Should stop after first error
@@ -557,10 +481,7 @@ class TestErrorIsolation:
 
     @pytest.mark.asyncio
     async def test_error_details_captured(
-        self,
-        hooks_manager: HooksManager,
-        failing_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, failing_hook, sample_context: HookContext
     ) -> None:
         """Test that error details are captured."""
         hooks_manager.register(HookType.PRE_PROCESS, failing_hook)
@@ -582,11 +503,7 @@ class TestErrorIsolation:
 class TestHookEnableDisable:
     """Tests for enabling and disabling hooks."""
 
-    def test_disable_hook(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook
-    ) -> None:
+    def test_disable_hook(self, hooks_manager: HooksManager, sync_hook) -> None:
         """Test disabling a hook by name."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook, name="to_disable")
 
@@ -598,17 +515,9 @@ class TestHookEnableDisable:
         enabled = hooks_manager.get_hooks(HookType.PRE_PROCESS, enabled_only=True)
         assert len(enabled) == 0
 
-    def test_enable_hook(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook
-    ) -> None:
+    def test_enable_hook(self, hooks_manager: HooksManager, sync_hook) -> None:
         """Test enabling a disabled hook."""
-        registered = hooks_manager.register(
-            HookType.PRE_PROCESS,
-            sync_hook,
-            name="to_toggle"
-        )
+        registered = hooks_manager.register(HookType.PRE_PROCESS, sync_hook, name="to_toggle")
         registered.enabled = False
 
         success = hooks_manager.enable_hook(HookType.PRE_PROCESS, "to_toggle")
@@ -620,10 +529,7 @@ class TestHookEnableDisable:
 
     @pytest.mark.asyncio
     async def test_disabled_hooks_not_executed(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sync_hook, sample_context: HookContext
     ) -> None:
         """Test that disabled hooks are not executed."""
         registered = hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
@@ -642,42 +548,27 @@ class TestHookEnableDisable:
 class TestTagFiltering:
     """Tests for tag-based hook filtering."""
 
-    def test_filter_by_tags(
-        self,
-        hooks_manager: HooksManager
-    ) -> None:
+    def test_filter_by_tags(self, hooks_manager: HooksManager) -> None:
         """Test filtering hooks by tags."""
-        def hook_a(ctx): return ctx
-        def hook_b(ctx): return ctx
 
-        hooks_manager.register(
-            HookType.PRE_PROCESS,
-            hook_a,
-            tags={"logging", "debug"}
-        )
-        hooks_manager.register(
-            HookType.PRE_PROCESS,
-            hook_b,
-            tags={"production"}
-        )
+        def hook_a(ctx):
+            return ctx
 
-        logging_hooks = hooks_manager.get_hooks(
-            HookType.PRE_PROCESS,
-            tags={"logging"}
-        )
+        def hook_b(ctx):
+            return ctx
+
+        hooks_manager.register(HookType.PRE_PROCESS, hook_a, tags={"logging", "debug"})
+        hooks_manager.register(HookType.PRE_PROCESS, hook_b, tags={"production"})
+
+        logging_hooks = hooks_manager.get_hooks(HookType.PRE_PROCESS, tags={"logging"})
         assert len(logging_hooks) == 1
 
-        debug_hooks = hooks_manager.get_hooks(
-            HookType.PRE_PROCESS,
-            tags={"debug"}
-        )
+        debug_hooks = hooks_manager.get_hooks(HookType.PRE_PROCESS, tags={"debug"})
         assert len(debug_hooks) == 1
 
     @pytest.mark.asyncio
     async def test_execute_with_tag_filter(
-        self,
-        hooks_manager: HooksManager,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sample_context: HookContext
     ) -> None:
         """Test execution with tag filtering."""
         execution_log = []
@@ -690,22 +581,10 @@ class TestTagFiltering:
             execution_log.append("prod")
             return ctx
 
-        hooks_manager.register(
-            HookType.PRE_PROCESS,
-            hook_logging,
-            tags={"logging"}
-        )
-        hooks_manager.register(
-            HookType.PRE_PROCESS,
-            hook_prod,
-            tags={"production"}
-        )
+        hooks_manager.register(HookType.PRE_PROCESS, hook_logging, tags={"logging"})
+        hooks_manager.register(HookType.PRE_PROCESS, hook_prod, tags={"production"})
 
-        await hooks_manager.execute(
-            HookType.PRE_PROCESS,
-            sample_context,
-            tags={"logging"}
-        )
+        await hooks_manager.execute(HookType.PRE_PROCESS, sample_context, tags={"logging"})
 
         assert "logging" in execution_log
         assert "prod" not in execution_log
@@ -721,10 +600,7 @@ class TestHookStatistics:
 
     @pytest.mark.asyncio
     async def test_execution_stats(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        sample_context: HookContext
+        self, hooks_manager: HooksManager, sync_hook, sample_context: HookContext
     ) -> None:
         """Test execution statistics tracking."""
         hooks_manager.register(HookType.PRE_PROCESS, sync_hook)
@@ -738,25 +614,10 @@ class TestHookStatistics:
         assert stats["total_execution_time_ms"] > 0
         assert "average_execution_time_ms" in stats
 
-    def test_list_hooks(
-        self,
-        hooks_manager: HooksManager,
-        sync_hook,
-        async_hook
-    ) -> None:
+    def test_list_hooks(self, hooks_manager: HooksManager, sync_hook, async_hook) -> None:
         """Test listing all hooks."""
-        hooks_manager.register(
-            HookType.PRE_PROCESS,
-            sync_hook,
-            name="sync",
-            priority=50
-        )
-        hooks_manager.register(
-            HookType.POST_PROCESS,
-            async_hook,
-            name="async",
-            priority=100
-        )
+        hooks_manager.register(HookType.PRE_PROCESS, sync_hook, name="sync", priority=50)
+        hooks_manager.register(HookType.POST_PROCESS, async_hook, name="async", priority=100)
 
         hooks_list = hooks_manager.list_hooks()
 
@@ -878,6 +739,7 @@ class TestUtilityHooks:
     @pytest.mark.asyncio
     async def test_compose_hooks(self, sample_context: HookContext) -> None:
         """Test composing multiple hooks."""
+
         def hook1(ctx: HookContext) -> HookContext:
             ctx.metadata["step1"] = True
             return ctx
@@ -908,7 +770,7 @@ class TestHookExecutionResult:
             hooks_executed=2,
             hooks_skipped=1,
             execution_time_ms=50.5,
-            errors=[{"hook_name": "test", "error_type": "ValueError", "message": "test"}]
+            errors=[{"hook_name": "test", "error_type": "ValueError", "message": "test"}],
         )
 
         assert result.hooks_executed == 2
@@ -918,10 +780,7 @@ class TestHookExecutionResult:
 
     def test_result_to_dict(self, sample_context: HookContext) -> None:
         """Test result serialization."""
-        result = HookExecutionResult(
-            final_context=sample_context,
-            hooks_executed=1
-        )
+        result = HookExecutionResult(final_context=sample_context, hooks_executed=1)
         result_dict = result.to_dict()
 
         assert "final_context" in result_dict

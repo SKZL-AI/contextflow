@@ -194,10 +194,7 @@ class GroqProvider(BaseProvider):
         Groq LPU provides ultra-low latency inference with typical
         response times of 100-300ms (p50).
         """
-        model_info = self.MODELS.get(
-            self.model,
-            self.MODELS["llama-3.1-70b-versatile"]
-        )
+        model_info = self.MODELS.get(self.model, self.MODELS["llama-3.1-70b-versatile"])
         rate_limit = self.RATE_LIMITS.get(self.model, 30)
 
         return ProviderCapabilities(
@@ -211,8 +208,8 @@ class GroqProvider(BaseProvider):
             rate_limit_tpm=None,  # Varies by account tier
             supports_batch_processing=False,
             supports_vision=False,
-            latency_p50_ms=200.0,   # Ultra-fast LPU inference
-            latency_p99_ms=500.0,   # Still very fast at p99
+            latency_p50_ms=200.0,  # Ultra-fast LPU inference
+            latency_p99_ms=500.0,  # Still very fast at p99
         )
 
     def _build_request_payload(
@@ -254,11 +251,7 @@ class GroqProvider(BaseProvider):
 
         return payload
 
-    def _handle_error_response(
-        self,
-        status_code: int,
-        response_body: dict[str, Any]
-    ) -> None:
+    def _handle_error_response(self, status_code: int, response_body: dict[str, Any]) -> None:
         """
         Handle error responses from Groq API.
 
@@ -272,58 +265,30 @@ class GroqProvider(BaseProvider):
             ProviderTimeoutError: On timeout-related errors
             ProviderError: On other API errors
         """
-        error_message = response_body.get("error", {}).get(
-            "message", "Unknown error"
-        )
+        error_message = response_body.get("error", {}).get("message", "Unknown error")
 
         if status_code == 401:
-            self.logger.log_error(
-                ProviderAuthenticationError("groq"),
-                status_code=status_code
-            )
-            raise ProviderAuthenticationError(
-                "groq",
-                details={"message": error_message}
-            )
+            self.logger.log_error(ProviderAuthenticationError("groq"), status_code=status_code)
+            raise ProviderAuthenticationError("groq", details={"message": error_message})
 
         if status_code == 429:
             retry_after = response_body.get("error", {}).get("retry_after")
-            self.logger.log_error(
-                ProviderRateLimitError("groq"),
-                status_code=status_code
-            )
+            self.logger.log_error(ProviderRateLimitError("groq"), status_code=status_code)
             raise ProviderRateLimitError(
-                "groq",
-                retry_after=retry_after,
-                details={"message": error_message}
+                "groq", retry_after=retry_after, details={"message": error_message}
             )
 
         if status_code == 408 or "timeout" in error_message.lower():
             self.logger.log_error(
-                ProviderTimeoutError("groq", self.timeout),
-                status_code=status_code
+                ProviderTimeoutError("groq", self.timeout), status_code=status_code
             )
-            raise ProviderTimeoutError(
-                "groq",
-                self.timeout,
-                details={"message": error_message}
-            )
+            raise ProviderTimeoutError("groq", self.timeout, details={"message": error_message})
 
-        error = ProviderError(
-            "groq",
-            error_message,
-            status_code=status_code,
-            details=response_body
-        )
+        error = ProviderError("groq", error_message, status_code=status_code, details=response_body)
         self.logger.log_error(error, status_code=status_code)
         raise error
 
-    def _calculate_cost(
-        self,
-        model: str,
-        input_tokens: int,
-        output_tokens: int
-    ) -> float:
+    def _calculate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
         """
         Calculate the cost for a completion.
 
@@ -335,14 +300,10 @@ class GroqProvider(BaseProvider):
         Returns:
             Cost in USD.
         """
-        pricing = self.PRICING.get(
-            model,
-            self.PRICING["llama-3.1-70b-versatile"]
-        )
-        cost = (
-            (input_tokens / 1_000_000) * pricing["input"] +
-            (output_tokens / 1_000_000) * pricing["output"]
-        )
+        pricing = self.PRICING.get(model, self.PRICING["llama-3.1-70b-versatile"])
+        cost = (input_tokens / 1_000_000) * pricing["input"] + (
+            output_tokens / 1_000_000
+        ) * pricing["output"]
         return cost
 
     @retry(
@@ -419,10 +380,7 @@ class GroqProvider(BaseProvider):
 
             # Handle errors
             if response.status_code != 200:
-                self._handle_error_response(
-                    response.status_code,
-                    response.json()
-                )
+                self._handle_error_response(response.status_code, response.json())
 
             # Parse response
             data = response.json()
@@ -455,18 +413,11 @@ class GroqProvider(BaseProvider):
 
         except httpx.TimeoutException as e:
             self.logger.log_error(e)
-            raise ProviderTimeoutError(
-                "groq",
-                self.timeout
-            ) from e
+            raise ProviderTimeoutError("groq", self.timeout) from e
 
         except httpx.HTTPStatusError as e:
             self.logger.log_error(e)
-            raise ProviderError(
-                "groq",
-                str(e),
-                status_code=e.response.status_code
-            ) from e
+            raise ProviderError("groq", str(e), status_code=e.response.status_code) from e
 
     async def stream(
         self,
@@ -521,18 +472,11 @@ class GroqProvider(BaseProvider):
         client = await self._get_client()
 
         try:
-            async with client.stream(
-                "POST",
-                "/chat/completions",
-                json=payload
-            ) as response:
+            async with client.stream("POST", "/chat/completions", json=payload) as response:
                 # Check for error status
                 if response.status_code != 200:
                     body = await response.aread()
-                    self._handle_error_response(
-                        response.status_code,
-                        json.loads(body)
-                    )
+                    self._handle_error_response(response.status_code, json.loads(body))
 
                 chunk_index = 0
 
@@ -576,11 +520,7 @@ class GroqProvider(BaseProvider):
             raise ProviderTimeoutError("groq", self.timeout) from e
 
         except httpx.HTTPStatusError as e:
-            raise ProviderError(
-                "groq",
-                str(e),
-                status_code=e.response.status_code
-            ) from e
+            raise ProviderError("groq", str(e), status_code=e.response.status_code) from e
 
     def count_tokens(self, text: str, model: str | None = None) -> int:
         """

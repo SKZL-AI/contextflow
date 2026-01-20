@@ -415,9 +415,7 @@ class AgentPoolExhaustedError(AgentError):
         max_agents: int,
         details: dict[str, Any] | None = None,
     ):
-        message = (
-            f"Agent pool exhausted: {current_agents}/{max_agents} agents in use."
-        )
+        message = f"Agent pool exhausted: {current_agents}/{max_agents} agents in use."
         super().__init__(message, details)
         self.current_agents = current_agents
         self.max_agents = max_agents
@@ -459,8 +457,7 @@ class PoolExhaustedError(PoolError):
         details: dict[str, Any] | None = None,
     ):
         message = (
-            f"Pool exhausted: {active_agents}/{max_agents} agents active, "
-            "no capacity available."
+            f"Pool exhausted: {active_agents}/{max_agents} agents active, " "no capacity available."
         )
         super().__init__(message, details)
         self.active_agents = active_agents

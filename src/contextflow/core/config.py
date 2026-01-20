@@ -108,23 +108,15 @@ class ContextFlowConfig:
     claude: ProviderConfig = field(
         default_factory=lambda: ProviderConfig(model="claude-3-5-sonnet-20241022")
     )
-    openai: ProviderConfig = field(
-        default_factory=lambda: ProviderConfig(model="gpt-4o")
-    )
+    openai: ProviderConfig = field(default_factory=lambda: ProviderConfig(model="gpt-4o"))
     ollama: ProviderConfig = field(
-        default_factory=lambda: ProviderConfig(
-            model="llama2", base_url="http://localhost:11434"
-        )
+        default_factory=lambda: ProviderConfig(model="llama2", base_url="http://localhost:11434")
     )
     vllm: ProviderConfig = field(
         default_factory=lambda: ProviderConfig(base_url="http://localhost:8000")
     )
-    groq: ProviderConfig = field(
-        default_factory=lambda: ProviderConfig(model="mixtral-8x7b-32768")
-    )
-    gemini: ProviderConfig = field(
-        default_factory=lambda: ProviderConfig(model="gemini-pro")
-    )
+    groq: ProviderConfig = field(default_factory=lambda: ProviderConfig(model="mixtral-8x7b-32768"))
+    gemini: ProviderConfig = field(default_factory=lambda: ProviderConfig(model="gemini-pro"))
     mistral: ProviderConfig = field(
         default_factory=lambda: ProviderConfig(model="mistral-large-latest")
     )
@@ -205,17 +197,13 @@ class ContextFlowConfig:
             strategy=StrategyConfig(
                 gsd_max_tokens=get_env_int("CONTEXTFLOW_GSD_MAX_TOKENS", 10_000),
                 ralph_max_tokens=get_env_int("CONTEXTFLOW_RALPH_MAX_TOKENS", 100_000),
-                rlm_max_parallel_agents=get_env_int(
-                    "CONTEXTFLOW_RLM_MAX_PARALLEL_AGENTS", 10
-                ),
+                rlm_max_parallel_agents=get_env_int("CONTEXTFLOW_RLM_MAX_PARALLEL_AGENTS", 10),
                 rlm_max_iterations=get_env_int("CONTEXTFLOW_RLM_MAX_ITERATIONS", 50),
             ),
             # RAG config
             rag=RAGConfig(
                 embedding_provider=get_env("CONTEXTFLOW_EMBEDDING_PROVIDER", "openai"),
-                embedding_model=get_env(
-                    "CONTEXTFLOW_EMBEDDING_MODEL", "text-embedding-3-small"
-                ),
+                embedding_model=get_env("CONTEXTFLOW_EMBEDDING_MODEL", "text-embedding-3-small"),
                 chunk_size=get_env_int("CONTEXTFLOW_CHUNK_SIZE", 4_000),
                 chunk_overlap=get_env_int("CONTEXTFLOW_CHUNK_OVERLAP", 500),
             ),

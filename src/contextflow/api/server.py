@@ -267,9 +267,7 @@ def get_request_id(request: Request) -> str:
 
 
 @app.exception_handler(ValidationError)
-async def validation_error_handler(
-    request: Request, exc: ValidationError
-) -> JSONResponse:
+async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
     """Handle validation errors."""
     request_id = get_request_id(request)
     api_logger.warning(
@@ -294,9 +292,7 @@ async def validation_error_handler(
 
 
 @app.exception_handler(RateLimitError)
-async def rate_limit_error_handler(
-    request: Request, exc: RateLimitError
-) -> JSONResponse:
+async def rate_limit_error_handler(request: Request, exc: RateLimitError) -> JSONResponse:
     """Handle rate limit errors."""
     request_id = get_request_id(request)
     api_logger.warning(
@@ -321,9 +317,7 @@ async def rate_limit_error_handler(
 
 
 @app.exception_handler(TokenLimitError)
-async def token_limit_error_handler(
-    request: Request, exc: TokenLimitError
-) -> JSONResponse:
+async def token_limit_error_handler(request: Request, exc: TokenLimitError) -> JSONResponse:
     """Handle token limit errors."""
     request_id = get_request_id(request)
     api_logger.warning(
@@ -347,9 +341,7 @@ async def token_limit_error_handler(
 
 
 @app.exception_handler(ProviderError)
-async def provider_error_handler(
-    request: Request, exc: ProviderError
-) -> JSONResponse:
+async def provider_error_handler(request: Request, exc: ProviderError) -> JSONResponse:
     """Handle provider errors."""
     request_id = get_request_id(request)
     api_logger.error(
@@ -372,9 +364,7 @@ async def provider_error_handler(
 
 
 @app.exception_handler(ContextFlowError)
-async def contextflow_error_handler(
-    request: Request, exc: ContextFlowError
-) -> JSONResponse:
+async def contextflow_error_handler(request: Request, exc: ContextFlowError) -> JSONResponse:
     """Handle ContextFlow-specific errors."""
     request_id = get_request_id(request)
     api_logger.error(
@@ -398,9 +388,7 @@ async def contextflow_error_handler(
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(
-    request: Request, exc: HTTPException
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle HTTP exceptions."""
     request_id = get_request_id(request)
 
@@ -425,9 +413,7 @@ async def http_exception_handler(
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle all unhandled exceptions."""
     request_id = get_request_id(request)
     api_logger.error(
@@ -541,9 +527,7 @@ async def _get_or_create_api_session(
 
     async with _api_sessions_lock:
         if session_id in _api_sessions:
-            return await session_manager.get_session(
-                _api_sessions[session_id]["cf_session_id"]
-            )
+            return await session_manager.get_session(_api_sessions[session_id]["cf_session_id"])
 
     return None
 

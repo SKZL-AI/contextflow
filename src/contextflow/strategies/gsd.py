@@ -120,17 +120,42 @@ Please provide your complete response following the structured approach above.""
 
 COMPLEXITY_KEYWORDS = {
     "high": [
-        "analyze", "compare", "contrast", "evaluate", "synthesize",
-        "explain why", "what are the implications", "how does this relate",
-        "critique", "assess", "investigate", "examine in detail",
-        "multiple aspects", "comprehensive", "thorough analysis",
-        "step by step", "elaborate", "justify", "argue",
+        "analyze",
+        "compare",
+        "contrast",
+        "evaluate",
+        "synthesize",
+        "explain why",
+        "what are the implications",
+        "how does this relate",
+        "critique",
+        "assess",
+        "investigate",
+        "examine in detail",
+        "multiple aspects",
+        "comprehensive",
+        "thorough analysis",
+        "step by step",
+        "elaborate",
+        "justify",
+        "argue",
     ],
     "low": [
-        "what is", "who is", "when was", "where is", "list",
-        "name", "define", "identify", "find", "extract",
-        "summarize briefly", "yes or no", "true or false",
-        "how many", "which one",
+        "what is",
+        "who is",
+        "when was",
+        "where is",
+        "list",
+        "name",
+        "define",
+        "identify",
+        "find",
+        "extract",
+        "summarize briefly",
+        "yes or no",
+        "true or false",
+        "how many",
+        "which one",
     ],
 }
 
@@ -208,9 +233,7 @@ class GSDStrategy(BaseStrategy):
             ValueError: If mode is invalid or threshold out of range
         """
         if mode not in ("direct", "guided", "auto"):
-            raise ValueError(
-                f"Invalid mode '{mode}'. Must be 'direct', 'guided', or 'auto'."
-            )
+            raise ValueError(f"Invalid mode '{mode}'. Must be 'direct', 'guided', or 'auto'.")
 
         super().__init__(
             provider=provider,
@@ -472,9 +495,7 @@ class GSDStrategy(BaseStrategy):
 
         # Build the structured prompt
         constraints_str = (
-            "\n".join(f"- {c}" for c in constraints)
-            if constraints
-            else "None specified"
+            "\n".join(f"- {c}" for c in constraints) if constraints else "None specified"
         )
 
         user_content = GSD_GUIDED_USER_TEMPLATE.format(
@@ -641,9 +662,7 @@ class GSDStrategy(BaseStrategy):
             ValueError: If context_tokens is invalid
         """
         if context_tokens < 0:
-            raise ValueError(
-                f"context_tokens must be non-negative, got {context_tokens}"
-            )
+            raise ValueError(f"context_tokens must be non-negative, got {context_tokens}")
 
         # Get model for pricing lookup
         model_name = model or self._model or self._provider.model
@@ -667,17 +686,14 @@ class GSDStrategy(BaseStrategy):
         total_input = context_tokens + task_overhead
 
         # Calculate costs (convert from per 1M tokens)
-        min_cost = (
-            (total_input * pricing["input"] / 1_000_000)
-            + (min_output * pricing["output"] / 1_000_000)
+        min_cost = (total_input * pricing["input"] / 1_000_000) + (
+            min_output * pricing["output"] / 1_000_000
         )
-        max_cost = (
-            (total_input * pricing["input"] / 1_000_000)
-            + (max_output * pricing["output"] / 1_000_000)
+        max_cost = (total_input * pricing["input"] / 1_000_000) + (
+            max_output * pricing["output"] / 1_000_000
         )
-        expected_cost = (
-            (total_input * pricing["input"] / 1_000_000)
-            + (expected_output * pricing["output"] / 1_000_000)
+        expected_cost = (total_input * pricing["input"] / 1_000_000) + (
+            expected_output * pricing["output"] / 1_000_000
         )
 
         # If verification is enabled, add verification overhead (~20% extra)
@@ -800,14 +816,8 @@ class GSDStrategy(BaseStrategy):
         task_lower = task.lower()
 
         # Count complexity indicators
-        high_count = sum(
-            1 for keyword in COMPLEXITY_KEYWORDS["high"]
-            if keyword in task_lower
-        )
-        low_count = sum(
-            1 for keyword in COMPLEXITY_KEYWORDS["low"]
-            if keyword in task_lower
-        )
+        high_count = sum(1 for keyword in COMPLEXITY_KEYWORDS["high"] if keyword in task_lower)
+        low_count = sum(1 for keyword in COMPLEXITY_KEYWORDS["low"] if keyword in task_lower)
 
         # Check task length (longer tasks tend to be more complex)
         task_length_factor = 1 if len(task) > 200 else 0
@@ -816,12 +826,7 @@ class GSDStrategy(BaseStrategy):
         context_length_factor = 1 if len(context) > 5000 else 0
 
         # Calculate complexity score
-        complexity_score = (
-            high_count * 2
-            - low_count
-            + task_length_factor
-            + context_length_factor
-        )
+        complexity_score = high_count * 2 - low_count + task_length_factor + context_length_factor
 
         logger.debug(
             "Mode determination",
@@ -861,17 +866,21 @@ class GSDStrategy(BaseStrategy):
         ]
 
         if constraints:
-            parts.extend([
-                "",
-                "## Constraints",
-                "\n".join(f"- {c}" for c in constraints),
-            ])
+            parts.extend(
+                [
+                    "",
+                    "## Constraints",
+                    "\n".join(f"- {c}" for c in constraints),
+                ]
+            )
 
-        parts.extend([
-            "",
-            "## Instructions",
-            "Please complete the task based on the context provided above.",
-        ])
+        parts.extend(
+            [
+                "",
+                "## Instructions",
+                "Please complete the task based on the context provided above.",
+            ]
+        )
 
         return "\n".join(parts)
 

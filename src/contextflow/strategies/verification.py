@@ -346,10 +346,7 @@ class VerificationProtocol:
                 check_tasks.append(self._check_task_alignment(task, output))
 
             # Constraint check only if constraints provided
-            if (
-                VerificationCheckType.CONSTRAINT_CHECK in self.required_checks
-                and constraints
-            ):
+            if VerificationCheckType.CONSTRAINT_CHECK in self.required_checks and constraints:
                 check_tasks.append(self._check_constraints(output, constraints))
 
             # Completeness check
@@ -361,10 +358,7 @@ class VerificationProtocol:
                 check_tasks.append(self._check_quality(output))
 
             # Accuracy check only if context provided
-            if (
-                VerificationCheckType.ACCURACY in self.required_checks
-                and context
-            ):
+            if VerificationCheckType.ACCURACY in self.required_checks and context:
                 check_tasks.append(self._check_accuracy(task, output, context))
 
             # Run all checks concurrently
@@ -406,9 +400,7 @@ class VerificationProtocol:
 
                 # Must pass all required checks
                 required_passed = all(
-                    c.passed
-                    for c in checks
-                    if c.check_type in self.required_checks
+                    c.passed for c in checks if c.check_type in self.required_checks
                 )
                 passed = required_passed and confidence >= self.min_confidence
             else:
@@ -689,7 +681,8 @@ class VerificationProtocol:
         constraints: list[str] | None = None,
         context: str | None = None,
         max_iterations: int = 3,
-        improvement_callback: Callable[[str, str, list[str]], Coroutine[Any, Any, str]] | None = None,
+        improvement_callback: Callable[[str, str, list[str]], Coroutine[Any, Any, str]]
+        | None = None,
     ) -> tuple[str, VerificationResult]:
         """
         Iterate on output until verification passes.
@@ -752,9 +745,7 @@ class VerificationProtocol:
 
                 if improvement_callback:
                     # Use provided callback
-                    current_output = await improvement_callback(
-                        task, current_output, result.issues
-                    )
+                    current_output = await improvement_callback(task, current_output, result.issues)
                 else:
                     # Use default improvement method
                     improvement_prompt = await self._generate_improvement_prompt(
@@ -794,9 +785,7 @@ class VerificationProtocol:
             Formatted improvement prompt
         """
         issues_text = "\n".join(f"- {issue}" for issue in issues) or "None identified"
-        suggestions_text = (
-            "\n".join(f"- {s}" for s in suggestions) or "None provided"
-        )
+        suggestions_text = "\n".join(f"- {s}" for s in suggestions) or "None provided"
 
         return IMPROVEMENT_PROMPT.format(
             task=task,
@@ -966,12 +955,26 @@ class VerificationProtocol:
 
         # Simple heuristics
         positive_indicators = [
-            "pass", "correct", "complete", "good", "yes",
-            "meets", "satisfied", "adequate", "sufficient",
+            "pass",
+            "correct",
+            "complete",
+            "good",
+            "yes",
+            "meets",
+            "satisfied",
+            "adequate",
+            "sufficient",
         ]
         negative_indicators = [
-            "fail", "incorrect", "incomplete", "bad", "no",
-            "missing", "unsatisfied", "inadequate", "insufficient",
+            "fail",
+            "incorrect",
+            "incomplete",
+            "bad",
+            "no",
+            "missing",
+            "unsatisfied",
+            "inadequate",
+            "insufficient",
         ]
 
         positive_count = sum(1 for ind in positive_indicators if ind in response_lower)

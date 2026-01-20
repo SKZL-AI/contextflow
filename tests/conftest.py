@@ -2,11 +2,12 @@
 Pytest configuration and fixtures for ContextFlow tests.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from contextflow.core.types import Message, CompletionResponse
+import pytest
+
 from contextflow.core.config import ContextFlowConfig
+from contextflow.core.types import CompletionResponse, Message
 
 
 @pytest.fixture

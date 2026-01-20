@@ -624,16 +624,14 @@ class REPLEnvironment:
 
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
-                loop = asyncio.get_running_loop()
-                # Create a task and wait for it
-                future = asyncio.ensure_future(async_func(*args, **kwargs))
-                # Use a nested loop to wait (not ideal but works for REPL)
+                asyncio.get_running_loop()
+                # We're in an async context, use thread pool executor
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    return executor.submit(
-                        asyncio.run, async_func(*args, **kwargs)
-                    ).result(timeout=self._execution_timeout)
+                    return executor.submit(asyncio.run, async_func(*args, **kwargs)).result(
+                        timeout=self._execution_timeout
+                    )
             except RuntimeError:
                 # No running loop, just run directly
                 return asyncio.run(async_func(*args, **kwargs))
@@ -1005,9 +1003,7 @@ class RLMStrategy(BaseStrategy):
             RLMMaxIterationsError: If max iterations reached
         """
         # Select system prompt based on mode
-        system_prompt = (
-            RLM_BASIC_SYSTEM_PROMPT if mode == "basic" else RLM_SYSTEM_PROMPT
-        )
+        system_prompt = RLM_BASIC_SYSTEM_PROMPT if mode == "basic" else RLM_SYSTEM_PROMPT
 
         # Build conversation history
         messages: list[Message] = []
@@ -1017,9 +1013,7 @@ class RLMStrategy(BaseStrategy):
         messages.append(Message(role="user", content=initial_content))
 
         final_answer: str | None = None
-        background_verify_task: asyncio.Task[DetailedVerificationResult] | None = (
-            None
-        )
+        background_verify_task: asyncio.Task[DetailedVerificationResult] | None = None
 
         for iteration in range(1, self._max_iterations + 1):
             iteration_start = time.time()
@@ -1083,13 +1077,9 @@ class RLMStrategy(BaseStrategy):
                     rlm_iteration.execution_results.append(result)
 
                     if result.success:
-                        execution_outputs.append(
-                            f"[Code Block {i + 1}]\n{result.output}"
-                        )
+                        execution_outputs.append(f"[Code Block {i + 1}]\n{result.output}")
                     else:
-                        execution_outputs.append(
-                            f"[Code Block {i + 1} ERROR]\n{result.error}"
-                        )
+                        execution_outputs.append(f"[Code Block {i + 1} ERROR]\n{result.error}")
 
                     # Check if FINAL was called in code
                     final_result_var = repl.get_variable("_final_result")
@@ -1150,9 +1140,7 @@ class RLMStrategy(BaseStrategy):
                 iterations=len(self._iterations),
                 max_iterations=self._max_iterations,
                 details={
-                    "last_response": (
-                        llm_response[:500] if llm_response else "None"
-                    ),
+                    "last_response": (llm_response[:500] if llm_response else "None"),
                 },
             )
 
@@ -1212,9 +1200,7 @@ class RLMStrategy(BaseStrategy):
 
         constraints_section = ""
         if constraints:
-            constraints_section = "\n\nConstraints:\n" + "\n".join(
-                f"- {c}" for c in constraints
-            )
+            constraints_section = "\n\nConstraints:\n" + "\n".join(f"- {c}" for c in constraints)
 
         return f"""TASK: {task}{constraints_section}
 
@@ -1427,9 +1413,7 @@ Please analyze this context to complete the task. Use Python code to explore the
             pattern = r"```\s*([\s\S]*?)```"
             matches = re.findall(pattern, response)
             # Filter out non-Python-looking code
-            matches = [
-                m for m in matches if not m.strip().startswith(("{", "<", "#!"))
-            ]
+            matches = [m for m in matches if not m.strip().startswith(("{", "<", "#!"))]
 
         return [m.strip() for m in matches if m.strip()]
 
@@ -1653,18 +1637,15 @@ Please analyze this context to complete the task. Use Python code to explore the
                 output_price_per_1k = 0.00125
 
         # Calculate costs
-        min_cost = (
-            (total_input_min / 1000) * input_price_per_1k
-            + (total_output_min / 1000) * output_price_per_1k
-        )
-        expected_cost = (
-            (total_input_expected / 1000) * input_price_per_1k
-            + (total_output_expected / 1000) * output_price_per_1k
-        )
-        max_cost = (
-            (total_input_max / 1000) * input_price_per_1k
-            + (total_output_max / 1000) * output_price_per_1k
-        )
+        min_cost = (total_input_min / 1000) * input_price_per_1k + (
+            total_output_min / 1000
+        ) * output_price_per_1k
+        expected_cost = (total_input_expected / 1000) * input_price_per_1k + (
+            total_output_expected / 1000
+        ) * output_price_per_1k
+        max_cost = (total_input_max / 1000) * input_price_per_1k + (
+            total_output_max / 1000
+        ) * output_price_per_1k
 
         return CostEstimate(
             min_cost=round(min_cost, 4),

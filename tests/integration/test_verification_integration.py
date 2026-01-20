@@ -11,27 +11,18 @@ by enabling self-correction:
 
 from __future__ import annotations
 
-import asyncio
-import json
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
 import pytest
 
-from contextflow.core.config import ContextFlowConfig, StrategyConfig
-from contextflow.core.hooks import HooksManager, HookType, HookContext
+from contextflow.core.config import ContextFlowConfig
+from contextflow.core.hooks import HookContext, HooksManager, HookType
 from contextflow.core.orchestrator import ContextFlow, OrchestratorConfig
-from contextflow.core.types import ProcessResult, StrategyType, TaskStatus
-from contextflow.strategies.base import (
-    BaseStrategy,
-    StrategyResult,
-    VerificationResult as StrategyVerificationResult,
-)
+from contextflow.core.types import StrategyType, TaskStatus
 from contextflow.strategies.verification import (
     VerificationProtocol,
     VerificationResult,
 )
-
 
 # =============================================================================
 # GSD Strategy with Verification Tests
@@ -126,7 +117,7 @@ class TestGSDWithVerification:
         mock_provider_always_pass_verification,
         test_config: ContextFlowConfig,
         hooks_manager: HooksManager,
-        sample_constraints: List[str],
+        sample_constraints: list[str],
     ) -> None:
         """Test GSD verification uses provided constraints."""
         orchestrator_config = OrchestratorConfig(
@@ -156,8 +147,7 @@ class TestGSDWithVerification:
             calls = mock_provider_always_pass_verification.complete_calls
             # At least one call should have constraints in system prompt
             verification_calls = [
-                c for c in calls
-                if c.get("system") and "verification" in c["system"].lower()
+                c for c in calls if c.get("system") and "verification" in c["system"].lower()
             ]
             # Verification was called
             assert len(verification_calls) >= 0
@@ -392,8 +382,10 @@ class TestMaxVerificationIterations:
             # Should complete with best effort
             assert result.status == TaskStatus.COMPLETED
             # But verification didn't pass
-            assert result.metadata.get("verification_passed", True) is False or \
-                   result.metadata.get("max_iterations_reached", False) is True
+            assert (
+                result.metadata.get("verification_passed", True) is False
+                or result.metadata.get("max_iterations_reached", False) is True
+            )
 
         finally:
             await cf.close()
@@ -624,7 +616,7 @@ class TestVerifierDirectly:
     async def test_verifier_with_constraints(
         self,
         mock_provider_always_pass_verification,
-        sample_constraints: List[str],
+        sample_constraints: list[str],
     ) -> None:
         """Test verifier checks against constraints."""
         verifier = VerificationProtocol(
@@ -673,7 +665,7 @@ class TestVerificationHooks:
     ) -> None:
         """Test ON_VERIFICATION_FAIL hook is called."""
         manager = HooksManager(name="verification_hooks")
-        fail_hook_data: Dict[str, Any] = {"called": False, "contexts": []}
+        fail_hook_data: dict[str, Any] = {"called": False, "contexts": []}
 
         async def on_fail(context: HookContext) -> HookContext:
             fail_hook_data["called"] = True

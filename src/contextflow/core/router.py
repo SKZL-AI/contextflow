@@ -55,28 +55,81 @@ class ComplexityLevel(Enum):
 # Complexity indicator keywords
 COMPLEXITY_INDICATORS: dict[str, list[str]] = {
     "exhaustive": [
-        "all", "every", "exhaustive", "comprehensive", "complete",
-        "entire", "thorough", "full", "detailed analysis", "in-depth",
-        "everything", "nothing missed", "cover all", "leave nothing out",
+        "all",
+        "every",
+        "exhaustive",
+        "comprehensive",
+        "complete",
+        "entire",
+        "thorough",
+        "full",
+        "detailed analysis",
+        "in-depth",
+        "everything",
+        "nothing missed",
+        "cover all",
+        "leave nothing out",
     ],
     "high": [
-        "analyze", "compare", "contrast", "evaluate", "synthesize",
-        "explain why", "implications", "how does this relate",
-        "critique", "assess", "investigate", "examine",
-        "multiple aspects", "step by step", "elaborate", "justify",
-        "argue", "prove", "demonstrate", "connect", "patterns",
-        "relationship between", "cause and effect", "impact of",
+        "analyze",
+        "compare",
+        "contrast",
+        "evaluate",
+        "synthesize",
+        "explain why",
+        "implications",
+        "how does this relate",
+        "critique",
+        "assess",
+        "investigate",
+        "examine",
+        "multiple aspects",
+        "step by step",
+        "elaborate",
+        "justify",
+        "argue",
+        "prove",
+        "demonstrate",
+        "connect",
+        "patterns",
+        "relationship between",
+        "cause and effect",
+        "impact of",
     ],
     "medium": [
-        "summarize", "describe", "explain", "outline", "overview",
-        "key points", "main ideas", "important", "significant",
-        "breakdown", "structure", "organize", "categorize",
+        "summarize",
+        "describe",
+        "explain",
+        "outline",
+        "overview",
+        "key points",
+        "main ideas",
+        "important",
+        "significant",
+        "breakdown",
+        "structure",
+        "organize",
+        "categorize",
     ],
     "low": [
-        "what is", "who is", "when was", "where is", "list",
-        "name", "define", "identify", "find", "extract",
-        "yes or no", "true or false", "how many", "which one",
-        "simple", "quick", "brief", "short",
+        "what is",
+        "who is",
+        "when was",
+        "where is",
+        "list",
+        "name",
+        "define",
+        "identify",
+        "find",
+        "extract",
+        "yes or no",
+        "true or false",
+        "how many",
+        "which one",
+        "simple",
+        "quick",
+        "brief",
+        "short",
     ],
 }
 
@@ -281,7 +334,9 @@ class StrategyRouter:
         if self._config.preferred_strategy:
             if self._can_handle_context(self._config.preferred_strategy, token_count):
                 strategy = self._config.preferred_strategy
-                reasoning = f"Using preferred strategy override. Original recommendation: {strategy.value}"
+                reasoning = (
+                    f"Using preferred strategy override. Original recommendation: {strategy.value}"
+                )
             else:
                 reasoning += f" (Preferred strategy {self._config.preferred_strategy.value} cannot handle {token_count} tokens)"
 
@@ -482,9 +537,23 @@ class StrategyRouter:
 
         # Factor 3: Code content detection
         code_indicators = [
-            "```", "def ", "class ", "import ", "function ",
-            "const ", "var ", "let ", "return ", "if (", "for (",
-            "->", "=>", "&&", "||", "==", "!=",
+            "```",
+            "def ",
+            "class ",
+            "import ",
+            "function ",
+            "const ",
+            "var ",
+            "let ",
+            "return ",
+            "if (",
+            "for (",
+            "->",
+            "=>",
+            "&&",
+            "||",
+            "==",
+            "!=",
         ]
         code_matches = sum(1 for ind in code_indicators if ind in text)
         code_factor = min(1.0, code_matches / 5.0)
@@ -493,8 +562,16 @@ class StrategyRouter:
 
         # Factor 4: Structure indicators (tables, lists, headers)
         structure_indicators = [
-            "|", "- ", "* ", "1.", "##", "###",
-            "<table", "<tr>", "<td>", "| ---",
+            "|",
+            "- ",
+            "* ",
+            "1.",
+            "##",
+            "###",
+            "<table",
+            "<tr>",
+            "<td>",
+            "| ---",
         ]
         structure_matches = sum(text.count(ind) for ind in structure_indicators)
         structure_factor = min(1.0, structure_matches / 20.0)
@@ -510,7 +587,7 @@ class StrategyRouter:
 
         # Factor 6: Unique words ratio (higher = less repetitive = denser)
         if words:
-            unique_ratio = len(set(w.lower() for w in words)) / len(words)
+            unique_ratio = len({w.lower() for w in words}) / len(words)
             unique_factor = unique_ratio  # Already 0-1
             density_score += unique_factor * 0.2
             factors_evaluated += 0.2
@@ -911,7 +988,9 @@ class StrategyRouter:
             output_cost = (output_estimate / 1_000_000) * output_price_per_m
 
             # Add verification overhead
-            total_cost = (input_cost + output_cost) * (1 + DEFAULT_COST_FACTORS["verification_overhead"])
+            total_cost = (input_cost + output_cost) * (
+                1 + DEFAULT_COST_FACTORS["verification_overhead"]
+            )
 
             costs[strategy.value] = round(total_cost, 6)
 
@@ -976,13 +1055,16 @@ class StrategyRouter:
             },
         }
 
-        return descriptions.get(strategy_type, {
-            "name": strategy_type.value,
-            "description": "Unknown strategy",
-            "optimal_for": "Unknown",
-            "min_tokens": 0,
-            "max_tokens": 0,
-        })
+        return descriptions.get(
+            strategy_type,
+            {
+                "name": strategy_type.value,
+                "description": "Unknown strategy",
+                "optimal_for": "Unknown",
+                "min_tokens": 0,
+                "max_tokens": 0,
+            },
+        )
 
     def list_strategies(self) -> list[dict[str, Any]]:
         """

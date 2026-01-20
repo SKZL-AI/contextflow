@@ -60,9 +60,7 @@ class EmbeddingResult:
     def __post_init__(self) -> None:
         """Validate the embedding result."""
         if self.vectors.ndim != 2:
-            raise ValueError(
-                f"Expected 2D array for vectors, got {self.vectors.ndim}D"
-            )
+            raise ValueError(f"Expected 2D array for vectors, got {self.vectors.ndim}D")
         if self.vectors.shape[1] != self.dimensions:
             raise ValueError(
                 f"Vector dimensions {self.vectors.shape[1]} do not match "

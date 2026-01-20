@@ -10,29 +10,24 @@ Tests the TemporaryRAG system integrated with ContextFlow strategies:
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-import numpy as np
 import pytest
 
-from contextflow.core.config import ContextFlowConfig, RAGConfig
+from contextflow.core.config import ContextFlowConfig
 from contextflow.core.hooks import HooksManager
 from contextflow.core.orchestrator import ContextFlow, OrchestratorConfig
-from contextflow.core.session import Session, SessionManager
-from contextflow.core.types import ProcessResult, StrategyType, TaskStatus
+from contextflow.core.types import StrategyType, TaskStatus
 from contextflow.rag.temp_rag import (
-    TemporaryRAG,
-    RAGDocument,
     DocSummary,
-    SearchResult,
     IndexType,
+    RAGDocument,
+    SearchResult,
+    TemporaryRAG,
     create_rag_from_texts,
     quick_search,
     select_index_type,
 )
-
 
 # =============================================================================
 # Process with RAG Tests
@@ -72,7 +67,7 @@ class TestProcessWithRAG:
                 "Document 3: Guide to natural language processing.",
             ]
 
-            with patch.object(cf, '_rag') as mock_rag:
+            with patch.object(cf, "_rag") as mock_rag:
                 mock_rag.add_documents = AsyncMock(return_value=["doc1", "doc2", "doc3"])
                 mock_rag.search = AsyncMock(return_value=[])
 
@@ -103,11 +98,13 @@ class TestProcessWithRAG:
         )
 
         # Add documents
-        await rag.add_documents([
-            "Python is a programming language known for readability.",
-            "Machine learning enables computers to learn from data.",
-            "Deep learning uses neural networks with many layers.",
-        ])
+        await rag.add_documents(
+            [
+                "Python is a programming language known for readability.",
+                "Machine learning enables computers to learn from data.",
+                "Deep learning uses neural networks with many layers.",
+            ]
+        )
 
         orchestrator_config = OrchestratorConfig(
             enable_verification=False,
@@ -190,11 +187,13 @@ class TestThreeLayerSearch:
         )
 
         # Add documents
-        doc_ids = await rag.add_documents([
-            "Document about artificial intelligence.",
-            "Document about database systems.",
-            "Document about web development.",
-        ])
+        doc_ids = await rag.add_documents(
+            [
+                "Document about artificial intelligence.",
+                "Document about database systems.",
+                "Document about web development.",
+            ]
+        )
 
         # Search compact
         result_ids = await rag.search_compact("artificial intelligence", k=10)
@@ -216,11 +215,13 @@ class TestThreeLayerSearch:
         )
 
         # Add documents
-        await rag.add_documents([
-            "Document about artificial intelligence and machine learning applications.",
-            "Document about database systems and data management.",
-            "Document about web development frameworks and technologies.",
-        ])
+        await rag.add_documents(
+            [
+                "Document about artificial intelligence and machine learning applications.",
+                "Document about database systems and data management.",
+                "Document about web development frameworks and technologies.",
+            ]
+        )
 
         # Get IDs first
         doc_ids = await rag.search_compact("artificial intelligence", k=3)
@@ -276,9 +277,7 @@ class TestThreeLayerSearch:
         )
 
         # Add many documents
-        documents = [
-            f"Document {i}: Content about topic {i % 3}" for i in range(100)
-        ]
+        documents = [f"Document {i}: Content about topic {i % 3}" for i in range(100)]
         await rag.add_documents(documents)
 
         # Layer 1: Get broad set of IDs (cheap)
@@ -333,11 +332,13 @@ class TestRAGDocumentManagement:
             index_type=IndexType.FLAT,
         )
 
-        doc_ids = await rag.add_documents([
-            "Document 1",
-            "Document 2",
-            "Document 3",
-        ])
+        doc_ids = await rag.add_documents(
+            [
+                "Document 1",
+                "Document 2",
+                "Document 3",
+            ]
+        )
 
         assert len(doc_ids) == 3
         assert rag.size() == 3
@@ -411,11 +412,13 @@ class TestRAGSearchVariants:
             index_type=IndexType.FLAT,
         )
 
-        await rag.add_documents([
-            "Python programming language",
-            "Java programming language",
-            "JavaScript web development",
-        ])
+        await rag.add_documents(
+            [
+                "Python programming language",
+                "Java programming language",
+                "JavaScript web development",
+            ]
+        )
 
         results = await rag.search("Python", k=3)
 
@@ -437,10 +440,12 @@ class TestRAGSearchVariants:
             index_type=IndexType.FLAT,
         )
 
-        await rag.add_documents([
-            "Highly relevant document about Python",
-            "Completely unrelated document about cooking",
-        ])
+        await rag.add_documents(
+            [
+                "Highly relevant document about Python",
+                "Completely unrelated document about cooking",
+            ]
+        )
 
         # Search with high threshold
         results = await rag.search("Python programming", k=10, threshold=0.5)

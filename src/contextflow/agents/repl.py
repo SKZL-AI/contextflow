@@ -98,9 +98,7 @@ class CodeExecutionResult:
             "success": self.success,
             "output": self.output[:1000] if len(self.output) > 1000 else self.output,
             "return_value": (
-                str(self.return_value)[:200]
-                if self.return_value is not None
-                else None
+                str(self.return_value)[:200] if self.return_value is not None else None
             ),
             "error": self.error,
             "error_type": self.error_type,
@@ -530,9 +528,7 @@ class REPLEnvironment:
 
         # Track variables before execution
         vars_before = set(self._variables.keys())
-        var_values_before = {
-            name: id(var.value) for name, var in self._variables.items()
-        }
+        var_values_before = {name: id(var.value) for name, var in self._variables.items()}
 
         # Build execution globals
         globals_dict = self._build_globals()
@@ -561,9 +557,7 @@ class REPLEnvironment:
                     # New variable
                     self.set_variable(name, value)
                     vars_created.append(name)
-                elif name in self._variables and id(value) != var_values_before.get(
-                    name
-                ):
+                elif name in self._variables and id(value) != var_values_before.get(name):
                     # Modified variable
                     self.set_variable(name, value)
                     vars_modified.append(name)
@@ -800,7 +794,9 @@ class REPLEnvironment:
         """
         if len(output) > self._max_output_length:
             truncated = output[: self._max_output_length]
-            truncated += f"\n...(output truncated, {len(output) - self._max_output_length} chars omitted)"
+            truncated += (
+                f"\n...(output truncated, {len(output) - self._max_output_length} chars omitted)"
+            )
             return truncated
         return output
 
@@ -827,14 +823,12 @@ class REPLEnvironment:
 
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # We're in an async context, create a task
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        asyncio.run, async_func(*args, **kwargs)
-                    )
+                    future = executor.submit(asyncio.run, async_func(*args, **kwargs))
                     return future.result(timeout=self._timeout)
             except RuntimeError:
                 # No running loop, run directly

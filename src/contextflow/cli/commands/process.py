@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -27,15 +27,17 @@ except ImportError:
 
     class CLIProcessArgs(BaseModel):
         """CLI process command arguments."""
+
         task: str = Field(..., description="Task to process")
-        files: List[str] = Field(default_factory=list, description="Input files")
-        context: Optional[str] = Field(default=None, description="Direct context")
+        files: list[str] = Field(default_factory=list, description="Input files")
+        context: str | None = Field(default=None, description="Direct context")
         strategy: str = Field(default="auto", description="Processing strategy")
-        provider: Optional[str] = Field(default=None, description="LLM provider")
-        output: Optional[str] = Field(default=None, description="Output file path")
+        provider: str | None = Field(default=None, description="LLM provider")
+        output: str | None = Field(default=None, description="Output file path")
         format: str = Field(default="text", description="Output format")
         verbose: bool = Field(default=False, description="Verbose output")
         stream: bool = Field(default=False, description="Stream output")
+
 
 app = typer.Typer(help="Process documents with ContextFlow")
 console = Console()
@@ -221,11 +223,11 @@ def process(
         typer.Argument(help="Task or question to process"),
     ],
     documents: Annotated[
-        Optional[List[Path]],
+        list[Path] | None,
         typer.Argument(help="Document files to process"),
     ] = None,
     context: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--context", "-c", help="Direct context string"),
     ] = None,
     strategy: Annotated[
@@ -233,7 +235,7 @@ def process(
         typer.Option("--strategy", "-s", help="Strategy: auto, gsd, ralph, rlm"),
     ] = "auto",
     provider: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--provider", "-p", help="LLM provider to use"),
     ] = None,
     output: Annotated[
@@ -241,7 +243,7 @@ def process(
         typer.Option("--output", "-o", help="Output format: text, json, markdown"),
     ] = "text",
     output_file: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output-file", "-O", help="Write output to file"),
     ] = None,
     stream: Annotated[
@@ -267,9 +269,7 @@ def process(
     """
     # Validate inputs
     if documents is None and context is None:
-        error_console.print(
-            "[red]Error:[/red] Either documents or --context must be provided"
-        )
+        error_console.print("[red]Error:[/red] Either documents or --context must be provided")
         raise typer.Exit(code=1)
 
     # Validate strategy
@@ -305,7 +305,7 @@ def process(
     try:
         if stream:
             # Streaming mode
-            with console.status("[bold green]Processing with streaming...") as status:
+            with console.status("[bold green]Processing with streaming..."):
                 asyncio.run(_stream_async(args))
         else:
             # Standard mode with progress
@@ -333,6 +333,7 @@ def process(
         error_console.print(f"[red]Error:[/red] {e}")
         if verbose:
             import traceback
+
             error_console.print(traceback.format_exc())
         raise typer.Exit(code=1)
 

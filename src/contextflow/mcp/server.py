@@ -334,9 +334,7 @@ class ContextFlowMCPServer:
                 f"Internal error: {str(e)}",
             )
 
-    async def _handle_initialize(
-        self, params: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _handle_initialize(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle initialize request."""
         await self._ensure_initialized()
 
@@ -468,11 +466,7 @@ class ContextFlowMCPServer:
         if handler is None:
             available = list_tool_names()
             return MCPToolResult(
-                content=[
-                    MCPTextContent(
-                        text=f"Unknown tool: {name}. Available: {available}"
-                    )
-                ],
+                content=[MCPTextContent(text=f"Unknown tool: {name}. Available: {available}")],
                 isError=True,
             )
 
@@ -495,11 +489,7 @@ class ContextFlowMCPServer:
             else:
                 # Generic result
                 return MCPToolResult(
-                    content=[
-                        MCPTextContent(
-                            text=json.dumps(result, indent=2, default=str)
-                        )
-                    ],
+                    content=[MCPTextContent(text=json.dumps(result, indent=2, default=str))],
                     isError=False,
                 )
 
@@ -580,13 +570,15 @@ class ContextFlowMCPServer:
 
         if result.chunk_suggestion:
             cs = result.chunk_suggestion
-            text_parts.extend([
-                "\n### Chunking Recommendation",
-                f"- Strategy: {cs.get('strategy', 'N/A')}",
-                f"- Chunk Size: {cs.get('chunk_size', 'N/A')} tokens",
-                f"- Overlap: {cs.get('overlap', 'N/A')} tokens",
-                f"- Estimated Chunks: {cs.get('estimated_chunks', 'N/A')}",
-            ])
+            text_parts.extend(
+                [
+                    "\n### Chunking Recommendation",
+                    f"- Strategy: {cs.get('strategy', 'N/A')}",
+                    f"- Chunk Size: {cs.get('chunk_size', 'N/A')} tokens",
+                    f"- Overlap: {cs.get('overlap', 'N/A')} tokens",
+                    f"- Estimated Chunks: {cs.get('estimated_chunks', 'N/A')}",
+                ]
+            )
             if cs.get("rationale"):
                 text_parts.append(f"- Rationale: {cs['rationale']}")
 
@@ -615,12 +607,14 @@ class ContextFlowMCPServer:
         ]
 
         for i, result in enumerate(results, 1):
-            text_parts.extend([
-                f"### Result {i} (Score: {result.score:.2f})",
-                f"**Chunk ID:** {result.chunk_id}",
-                f"```\n{result.content[:500]}{'...' if len(result.content) > 500 else ''}\n```",
-                "",
-            ])
+            text_parts.extend(
+                [
+                    f"### Result {i} (Score: {result.score:.2f})",
+                    f"**Chunk ID:** {result.chunk_id}",
+                    f"```\n{result.content[:500]}{'...' if len(result.content) > 500 else ''}\n```",
+                    "",
+                ]
+            )
 
         text_parts.append(f"\n*Search completed in {execution_time:.2f}s*")
 
@@ -664,9 +658,7 @@ class ContextFlowMCPServer:
                 "total": self._request_count,
                 "tool_calls": self._tool_calls,
             },
-            "contextflow": (
-                self._contextflow.stats if self._contextflow else None
-            ),
+            "contextflow": (self._contextflow.stats if self._contextflow else None),
         }
 
     # =========================================================================
@@ -747,9 +739,7 @@ class ContextFlowMCPServer:
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
 
-        await asyncio.get_event_loop().connect_read_pipe(
-            lambda: protocol, sys.stdin
-        )
+        await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
 
         writer_transport, writer_protocol = await asyncio.get_event_loop().connect_write_pipe(
             asyncio.streams.FlowControlMixin, sys.stdout
@@ -784,9 +774,7 @@ class ContextFlowMCPServer:
                         MCPErrorCodes.PARSE_ERROR,
                         f"Invalid JSON: {str(e)}",
                     )
-                    writer.write(
-                        (json.dumps(error_response) + "\n").encode("utf-8")
-                    )
+                    writer.write((json.dumps(error_response) + "\n").encode("utf-8"))
                     await writer.drain()
 
         except asyncio.CancelledError:
@@ -802,8 +790,7 @@ class ContextFlowMCPServer:
             from aiohttp import web
         except ImportError:
             raise ImportError(
-                "aiohttp is required for HTTP transport. "
-                "Install with: pip install aiohttp"
+                "aiohttp is required for HTTP transport. " "Install with: pip install aiohttp"
             )
 
         async def handle_post(request: web.Request) -> web.Response:
@@ -922,6 +909,7 @@ Examples:
     # Configure logging
     if args.debug:
         from contextflow.utils.logging import setup_logging
+
         setup_logging(level="DEBUG")
 
     # Create and run server

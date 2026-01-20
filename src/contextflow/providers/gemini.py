@@ -219,16 +219,20 @@ class GeminiProvider(BaseProvider):
                 # System messages are handled via system_instruction
                 continue
             elif msg.role == "assistant":
-                converted.append({
-                    "role": "model",
-                    "parts": [{"text": msg.content}],
-                })
+                converted.append(
+                    {
+                        "role": "model",
+                        "parts": [{"text": msg.content}],
+                    }
+                )
             else:
                 # user and any other roles
-                converted.append({
-                    "role": "user",
-                    "parts": [{"text": msg.content}],
-                })
+                converted.append(
+                    {
+                        "role": "user",
+                        "parts": [{"text": msg.content}],
+                    }
+                )
         return converted
 
     def _calculate_cost(
@@ -259,10 +263,9 @@ class GeminiProvider(BaseProvider):
             tier = "standard"
 
         tier_pricing = pricing[tier]
-        cost = (
-            (input_tokens / 1_000_000) * tier_pricing["input"]
-            + (output_tokens / 1_000_000) * tier_pricing["output"]
-        )
+        cost = (input_tokens / 1_000_000) * tier_pricing["input"] + (
+            output_tokens / 1_000_000
+        ) * tier_pricing["output"]
         return cost
 
     @retry(
@@ -312,9 +315,7 @@ class GeminiProvider(BaseProvider):
 
         # Estimate input tokens for logging
         input_text = " ".join(
-            part.get("text", "")
-            for msg in conv_messages
-            for part in msg.get("parts", [])
+            part.get("text", "") for msg in conv_messages for part in msg.get("parts", [])
         )
         input_tokens_estimate = self.count_tokens(input_text, use_model)
         self.logger.log_request(use_model, input_tokens_estimate)
@@ -347,7 +348,9 @@ class GeminiProvider(BaseProvider):
                 usage_metadata.prompt_token_count if usage_metadata else input_tokens_estimate
             )
             usage_output = (
-                usage_metadata.candidates_token_count if usage_metadata else self.count_tokens(content, use_model)
+                usage_metadata.candidates_token_count
+                if usage_metadata
+                else self.count_tokens(content, use_model)
             )
 
             # Determine finish reason
@@ -374,10 +377,13 @@ class GeminiProvider(BaseProvider):
                 finish_reason=finish_reason,
                 cost_usd=cost,
                 latency_ms=latency_ms,
-                raw_response={"text": content, "usage": {
-                    "prompt_token_count": usage_input,
-                    "candidates_token_count": usage_output,
-                }},
+                raw_response={
+                    "text": content,
+                    "usage": {
+                        "prompt_token_count": usage_input,
+                        "candidates_token_count": usage_output,
+                    },
+                },
             )
 
         except google_exceptions.PermissionDenied as e:
@@ -436,7 +442,7 @@ class GeminiProvider(BaseProvider):
             ProviderRateLimitError: On rate limit exceeded
             ProviderError: On other API errors
         """
-        use_model = model or self.model
+        _ = model or self.model  # For future use with model selection
         gemini_model = self._get_model(system)
 
         # Convert messages to Gemini format

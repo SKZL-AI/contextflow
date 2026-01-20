@@ -348,9 +348,7 @@ class AgentPool:
             AgentError: If execution fails
         """
         if self._status != PoolStatus.RUNNING:
-            raise PoolError(
-                message=f"Pool is not running (status: {self._status.value})"
-            )
+            raise PoolError(message=f"Pool is not running (status: {self._status.value})")
 
         pool_task = PoolTask(
             task=task,
@@ -390,9 +388,7 @@ class AgentPool:
             ValueError: If contexts list length doesn't match tasks
         """
         if self._status != PoolStatus.RUNNING:
-            raise PoolError(
-                message=f"Pool is not running (status: {self._status.value})"
-            )
+            raise PoolError(message=f"Pool is not running (status: {self._status.value})")
 
         if contexts is not None and len(contexts) != len(tasks):
             raise ValueError(
@@ -433,9 +429,7 @@ class AgentPool:
             PoolError: If pool is not running
         """
         if self._status != PoolStatus.RUNNING:
-            raise PoolError(
-                message=f"Pool is not running (status: {self._status.value})"
-            )
+            raise PoolError(message=f"Pool is not running (status: {self._status.value})")
 
         if not pool_tasks:
             return []
@@ -474,10 +468,7 @@ class AgentPool:
                 final_results.append(result)
 
         # Reorder to match original task order
-        task_id_to_result = {
-            sorted_tasks[i].id: final_results[i]
-            for i in range(len(sorted_tasks))
-        }
+        task_id_to_result = {sorted_tasks[i].id: final_results[i] for i in range(len(sorted_tasks))}
         ordered_results = [task_id_to_result[task.id] for task in pool_tasks]
 
         return ordered_results
@@ -634,9 +625,7 @@ class AgentPool:
                 if self.agent_count < self._config.max_agents:
                     agent = self._create_agent(role)
                 else:
-                    raise PoolError(
-                        message="No available agents and max agents reached"
-                    )
+                    raise PoolError(message="No available agents and max agents reached")
 
             return agent
 
@@ -652,8 +641,7 @@ class AgentPool:
         """
         # Get idle agents
         idle_agents = [
-            agent for agent_id, agent in self._agents.items()
-            if agent_id not in self._active_agents
+            agent for agent_id, agent in self._agents.items() if agent_id not in self._active_agents
         ]
 
         if not idle_agents:
@@ -777,10 +765,7 @@ class AgentPool:
             return
 
         # Find an idle agent to remove
-        idle_agents = [
-            agent_id for agent_id in self._agents
-            if agent_id not in self._active_agents
-        ]
+        idle_agents = [agent_id for agent_id in self._agents if agent_id not in self._active_agents]
 
         if len(idle_agents) > self._config.min_agents:
             self._status = PoolStatus.SCALING
@@ -791,8 +776,7 @@ class AgentPool:
             role = agent.role
             if role in self._agent_roles:
                 self._agent_roles[role] = [
-                    aid for aid in self._agent_roles[role]
-                    if aid != agent_id_to_remove
+                    aid for aid in self._agent_roles[role] if aid != agent_id_to_remove
                 ]
 
             self._status = PoolStatus.RUNNING
@@ -816,11 +800,7 @@ class AgentPool:
         """
         uptime = (datetime.now() - self._created_at).total_seconds()
         total_tasks = self._tasks_completed + self._tasks_failed
-        avg_task_time = (
-            self._total_execution_time / total_tasks
-            if total_tasks > 0
-            else 0.0
-        )
+        avg_task_time = self._total_execution_time / total_tasks if total_tasks > 0 else 0.0
 
         # Calculate RPM
         rpm = len(self._request_times)  # Requests in last minute

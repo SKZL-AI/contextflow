@@ -85,13 +85,10 @@ class StrategyResult:
         """Validate result data after initialization."""
         if not 0.0 <= self.verification_score <= 1.0:
             raise ValueError(
-                f"verification_score must be between 0.0 and 1.0, "
-                f"got {self.verification_score}"
+                f"verification_score must be between 0.0 and 1.0, " f"got {self.verification_score}"
             )
         if self.iterations < 0:
-            raise ValueError(
-                f"iterations must be non-negative, got {self.iterations}"
-            )
+            raise ValueError(f"iterations must be non-negative, got {self.iterations}")
 
     @property
     def total_tokens(self) -> int:
@@ -154,9 +151,7 @@ class VerificationResult:
     def __post_init__(self) -> None:
         """Validate verification result data."""
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(
-                f"confidence must be between 0.0 and 1.0, got {self.confidence}"
-            )
+            raise ValueError(f"confidence must be between 0.0 and 1.0, got {self.confidence}")
 
     @property
     def issue_count(self) -> int:
@@ -216,9 +211,7 @@ class CostEstimate:
         if self.min_cost < 0:
             raise ValueError(f"min_cost must be non-negative, got {self.min_cost}")
         if self.max_cost < self.min_cost:
-            raise ValueError(
-                f"max_cost ({self.max_cost}) must be >= min_cost ({self.min_cost})"
-            )
+            raise ValueError(f"max_cost ({self.max_cost}) must be >= min_cost ({self.min_cost})")
         if not self.min_cost <= self.expected_cost <= self.max_cost:
             raise ValueError(
                 f"expected_cost ({self.expected_cost}) must be between "
@@ -295,9 +288,7 @@ class BaseStrategy(ABC):
             ValueError: If temperature or verification_threshold out of range
         """
         if not 0.0 <= temperature <= 1.0:
-            raise ValueError(
-                f"temperature must be between 0.0 and 1.0, got {temperature}"
-            )
+            raise ValueError(f"temperature must be between 0.0 and 1.0, got {temperature}")
         if not 0.0 <= verification_threshold <= 1.0:
             raise ValueError(
                 f"verification_threshold must be between 0.0 and 1.0, "
@@ -724,9 +715,7 @@ class StrategyFactory:
         """
         if name not in cls._registry:
             available = list(cls._registry.keys())
-            raise ValueError(
-                f"Unknown strategy '{name}'. Available: {available}"
-            )
+            raise ValueError(f"Unknown strategy '{name}'. Available: {available}")
         return cls._registry[name](provider=provider, **kwargs)
 
     @classmethod

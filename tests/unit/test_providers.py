@@ -9,30 +9,29 @@ Tests provider functionality including:
 - Provider capabilities
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
-from contextflow.providers.factory import (
-    ProviderFactory,
-    get_provider,
-    list_providers,
-    is_provider_available,
-    register_provider,
-    get_available_providers,
-    _PROVIDER_REGISTRY,
-    _register_builtin_providers,
-)
-from contextflow.providers.base import BaseProvider
+import pytest
+
+from contextflow.core.config import ContextFlowConfig, ProviderConfig
 from contextflow.core.types import (
-    Message,
     CompletionResponse,
-    StreamChunk,
+    Message,
     ProviderCapabilities,
     ProviderType,
+    StreamChunk,
 )
-from contextflow.core.config import ContextFlowConfig, ProviderConfig
+from contextflow.providers.base import BaseProvider
+from contextflow.providers.factory import (
+    _PROVIDER_REGISTRY,
+    ProviderFactory,
+    get_available_providers,
+    get_provider,
+    is_provider_available,
+    list_providers,
+    register_provider,
+)
 from contextflow.utils.errors import ConfigurationError, MissingAPIKeyError
-
 
 # =============================================================================
 # Fixtures
@@ -60,6 +59,7 @@ def mock_config() -> ContextFlowConfig:
 @pytest.fixture
 def mock_provider_class() -> type:
     """Create a mock provider class."""
+
     class MockProvider(BaseProvider):
         @property
         def name(self) -> str:
@@ -89,7 +89,7 @@ def mock_provider_class() -> type:
             temperature=0.7,
             top_p=1.0,
             stop_sequences=None,
-            **kwargs
+            **kwargs,
         ) -> CompletionResponse:
             return CompletionResponse(
                 content="Mock response",
@@ -153,7 +153,7 @@ class TestProviderFactory:
 
     def test_factory_initialization(self, mock_config: MagicMock) -> None:
         """Test factory initialization."""
-        with patch('contextflow.providers.factory.get_config', return_value=mock_config):
+        with patch("contextflow.providers.factory.get_config", return_value=mock_config):
             factory = ProviderFactory(config=mock_config)
 
             assert factory.config == mock_config
@@ -192,16 +192,14 @@ class TestProviderRegistration:
 
     def test_register_non_provider_raises(self) -> None:
         """Test that registering non-provider raises TypeError."""
+
         class NotAProvider:
             pass
 
         with pytest.raises(TypeError, match="must inherit from BaseProvider"):
             register_provider("invalid", NotAProvider)
 
-    def test_list_providers_includes_registered(
-        self,
-        mock_provider_class: type
-    ) -> None:
+    def test_list_providers_includes_registered(self, mock_provider_class: type) -> None:
         """Test that list_providers includes registered providers."""
         register_provider("registered", mock_provider_class)
 
@@ -216,10 +214,7 @@ class TestProviderRegistration:
         assert is_provider_available("available") is True
         assert is_provider_available("not_registered") is False
 
-    def test_get_available_providers_alias(
-        self,
-        mock_provider_class: type
-    ) -> None:
+    def test_get_available_providers_alias(self, mock_provider_class: type) -> None:
         """Test that get_available_providers is alias for list_providers."""
         register_provider("test", mock_provider_class)
 
@@ -243,53 +238,36 @@ class TestGetProvider:
             get_provider("unknown_provider")
 
     def test_get_provider_creates_instance(
-        self,
-        mock_config: MagicMock,
-        mock_provider_class: type
+        self, mock_config: MagicMock, mock_provider_class: type
     ) -> None:
         """Test that get_provider creates provider instance."""
         register_provider("mock", mock_provider_class)
 
-        with patch('contextflow.providers.factory.get_config', return_value=mock_config):
-            provider = get_provider(
-                name="mock",
-                config=mock_config
-            )
+        with patch("contextflow.providers.factory.get_config", return_value=mock_config):
+            provider = get_provider(name="mock", config=mock_config)
 
             assert provider is not None
             assert provider.name == "mock"
 
     def test_get_provider_with_explicit_api_key(
-        self,
-        mock_config: MagicMock,
-        mock_provider_class: type
+        self, mock_config: MagicMock, mock_provider_class: type
     ) -> None:
         """Test get_provider with explicit API key."""
         register_provider("mock", mock_provider_class)
 
-        with patch('contextflow.providers.factory.get_config', return_value=mock_config):
-            provider = get_provider(
-                name="mock",
-                api_key="explicit-key",
-                config=mock_config
-            )
+        with patch("contextflow.providers.factory.get_config", return_value=mock_config):
+            provider = get_provider(name="mock", api_key="explicit-key", config=mock_config)
 
             assert provider.api_key == "explicit-key"
 
     def test_get_provider_with_explicit_model(
-        self,
-        mock_config: MagicMock,
-        mock_provider_class: type
+        self, mock_config: MagicMock, mock_provider_class: type
     ) -> None:
         """Test get_provider with explicit model."""
         register_provider("mock", mock_provider_class)
 
-        with patch('contextflow.providers.factory.get_config', return_value=mock_config):
-            provider = get_provider(
-                name="mock",
-                model="custom-model",
-                config=mock_config
-            )
+        with patch("contextflow.providers.factory.get_config", return_value=mock_config):
+            provider = get_provider(name="mock", model="custom-model", config=mock_config)
 
             assert provider.model == "custom-model"
 
@@ -309,7 +287,7 @@ class TestBaseProvider:
             api_key="test-key",
             base_url="https://api.example.com",
             timeout=60,
-            max_retries=5
+            max_retries=5,
         )
 
         assert provider.model == "test-model"
@@ -324,10 +302,7 @@ class TestBaseProvider:
 
         assert provider.name == "mock"
 
-    def test_provider_capabilities_property(
-        self,
-        mock_provider_class: type
-    ) -> None:
+    def test_provider_capabilities_property(self, mock_provider_class: type) -> None:
         """Test provider capabilities property."""
         provider = mock_provider_class(model="test")
 
@@ -369,9 +344,7 @@ class TestProviderCompletion:
 
     @pytest.mark.asyncio
     async def test_complete_returns_response(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test that complete returns CompletionResponse."""
         provider = mock_provider_class(model="test")
@@ -384,34 +357,26 @@ class TestProviderCompletion:
 
     @pytest.mark.asyncio
     async def test_complete_with_system_prompt(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test completion with system prompt."""
         provider = mock_provider_class(model="test")
 
         response = await provider.complete(
-            messages=sample_messages,
-            system="You are a helpful assistant."
+            messages=sample_messages, system="You are a helpful assistant."
         )
 
         assert response is not None
 
     @pytest.mark.asyncio
     async def test_complete_with_parameters(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test completion with various parameters."""
         provider = mock_provider_class(model="test")
 
         response = await provider.complete(
-            messages=sample_messages,
-            max_tokens=1000,
-            temperature=0.5,
-            top_p=0.9
+            messages=sample_messages, max_tokens=1000, temperature=0.5, top_p=0.9
         )
 
         assert response is not None
@@ -427,9 +392,7 @@ class TestProviderStreaming:
 
     @pytest.mark.asyncio
     async def test_stream_yields_chunks(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test that stream yields StreamChunk objects."""
         provider = mock_provider_class(model="test")
@@ -444,9 +407,7 @@ class TestProviderStreaming:
 
     @pytest.mark.asyncio
     async def test_stream_content_accumulates(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test that stream content can be accumulated."""
         provider = mock_provider_class(model="test")
@@ -503,10 +464,7 @@ class TestProviderValidation:
     """Tests for provider validation."""
 
     @pytest.mark.asyncio
-    async def test_validate_credentials_success(
-        self,
-        mock_provider_class: type
-    ) -> None:
+    async def test_validate_credentials_success(self, mock_provider_class: type) -> None:
         """Test successful credential validation."""
         provider = mock_provider_class(model="test")
 
@@ -515,10 +473,7 @@ class TestProviderValidation:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_validate_credentials_failure(
-        self,
-        mock_provider_class: type
-    ) -> None:
+    async def test_validate_credentials_failure(self, mock_provider_class: type) -> None:
         """Test credential validation failure."""
         provider = mock_provider_class(model="test")
 
@@ -542,9 +497,7 @@ class TestMessageConversion:
     """Tests for message conversion functionality."""
 
     def test_convert_messages(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test message conversion to provider format."""
         provider = mock_provider_class(model="test")
@@ -592,10 +545,7 @@ class TestProviderCapabilities:
 class TestCompletionResponse:
     """Tests for CompletionResponse dataclass."""
 
-    def test_response_structure(
-        self,
-        mock_completion_response: CompletionResponse
-    ) -> None:
+    def test_response_structure(self, mock_completion_response: CompletionResponse) -> None:
         """Test response structure."""
         assert mock_completion_response.content == "I'm doing well, thank you!"
         assert mock_completion_response.tokens_used == 25
@@ -603,10 +553,7 @@ class TestCompletionResponse:
         assert mock_completion_response.output_tokens == 15
         assert mock_completion_response.finish_reason == "stop"
 
-    def test_response_cost(
-        self,
-        mock_completion_response: CompletionResponse
-    ) -> None:
+    def test_response_cost(self, mock_completion_response: CompletionResponse) -> None:
         """Test response cost calculation."""
         assert mock_completion_response.cost_usd >= 0
         assert mock_completion_response.latency_ms >= 0
@@ -622,11 +569,7 @@ class TestStreamChunk:
 
     def test_chunk_structure(self) -> None:
         """Test chunk structure."""
-        chunk = StreamChunk(
-            content="Hello",
-            is_final=False,
-            chunk_index=0
-        )
+        chunk = StreamChunk(content="Hello", is_final=False, chunk_index=0)
 
         assert chunk.content == "Hello"
         assert chunk.is_final is False
@@ -634,11 +577,7 @@ class TestStreamChunk:
 
     def test_final_chunk(self) -> None:
         """Test final chunk."""
-        chunk = StreamChunk(
-            content="!",
-            is_final=True,
-            chunk_index=5
-        )
+        chunk = StreamChunk(content="!", is_final=True, chunk_index=5)
 
         assert chunk.is_final is True
 
@@ -661,11 +600,7 @@ class TestMessage:
 
     def test_message_with_metadata(self) -> None:
         """Test message with metadata."""
-        msg = Message(
-            role="assistant",
-            content="Response",
-            metadata={"timestamp": "2024-01-15"}
-        )
+        msg = Message(role="assistant", content="Response", metadata={"timestamp": "2024-01-15"})
 
         assert msg.metadata["timestamp"] == "2024-01-15"
 
@@ -694,10 +629,7 @@ class TestErrorHandling:
 
     def test_configuration_error(self) -> None:
         """Test ConfigurationError."""
-        error = ConfigurationError(
-            "Invalid configuration",
-            config_key="test_key"
-        )
+        error = ConfigurationError("Invalid configuration", config_key="test_key")
 
         assert "Invalid configuration" in str(error)
 
@@ -734,9 +666,7 @@ class TestProviderIntegration:
 
     @pytest.mark.asyncio
     async def test_complete_and_count_tokens(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test completing a request and counting tokens."""
         provider = mock_provider_class(model="test")
@@ -757,9 +687,7 @@ class TestProviderIntegration:
 
     @pytest.mark.asyncio
     async def test_stream_complete_consistency(
-        self,
-        mock_provider_class: type,
-        sample_messages: list[Message]
+        self, mock_provider_class: type, sample_messages: list[Message]
     ) -> None:
         """Test that stream produces content."""
         provider = mock_provider_class(model="test")

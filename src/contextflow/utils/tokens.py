@@ -161,9 +161,7 @@ class TokenEstimator:
             # Fallback: estimate ~4 characters per token
             return max(1, len(text) // 4)
 
-    def count_tokens_batch(
-        self, texts: list[str], model: str | None = None
-    ) -> list[int]:
+    def count_tokens_batch(self, texts: list[str], model: str | None = None) -> list[int]:
         """Count tokens for multiple texts."""
         return [self.count_tokens(text, model) for text in texts]
 
@@ -183,7 +181,7 @@ class TokenEstimator:
         for message in messages:
             # Add tokens for message structure (role, content markers)
             total += 4  # Overhead per message
-            for key, value in message.items():
+            for _key, value in message.items():
                 total += len(encoder.encode(str(value)))
 
         total += 2  # Overhead for start/end

@@ -6,7 +6,7 @@ Starts the ContextFlow REST API server.
 
 from __future__ import annotations
 
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -39,19 +39,19 @@ def serve(
         typer.Option("--log-level", "-l", help="Log level: debug, info, warning, error"),
     ] = "info",
     cors_origins: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--cors-origins", help="Comma-separated CORS origins"),
     ] = None,
     api_key: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--api-key", envvar="CONTEXTFLOW_API_KEY", help="API key for authentication"),
     ] = None,
     ssl_keyfile: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--ssl-keyfile", help="SSL key file path"),
     ] = None,
     ssl_certfile: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--ssl-certfile", help="SSL certificate file path"),
     ] = None,
 ) -> None:
@@ -91,13 +91,15 @@ def serve(
     console.print()
     console.print(table)
     console.print()
-    console.print(Panel(
-        f"[bold green]Server starting at:[/bold green] {url}\n"
-        f"[dim]API Docs:[/dim] {url}/docs\n"
-        f"[dim]Health:[/dim] {url}/health",
-        title="[bold blue]ContextFlow[/bold blue]",
-        expand=False,
-    ))
+    console.print(
+        Panel(
+            f"[bold green]Server starting at:[/bold green] {url}\n"
+            f"[dim]API Docs:[/dim] {url}/docs\n"
+            f"[dim]Health:[/dim] {url}/health",
+            title="[bold blue]ContextFlow[/bold blue]",
+            expand=False,
+        )
+    )
     console.print()
 
     try:

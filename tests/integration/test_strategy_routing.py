@@ -19,24 +19,21 @@ Token Count | Density | Complexity | Strategy
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
 import pytest
 
-from contextflow.core.config import ContextFlowConfig, StrategyConfig
+from contextflow.core.config import ContextFlowConfig
 from contextflow.core.hooks import HooksManager
 from contextflow.core.orchestrator import ContextFlow, OrchestratorConfig
 from contextflow.core.router import (
-    StrategyRouter,
-    RouterConfig,
-    ContextAnalysis,
     ComplexityLevel,
+    ContextAnalysis,
+    RouterConfig,
+    StrategyRouter,
 )
-from contextflow.core.types import StrategyType, ProcessResult
+from contextflow.core.types import StrategyType
 from contextflow.strategies.base import StrategyType as BaseStrategyType
-
 
 # =============================================================================
 # Strategy Routing Tests
@@ -74,10 +71,14 @@ class TestAutoRoutesToGSDForSmallContext:
             )
 
             # Should route to GSD (DIRECT or GUIDED)
-            assert result.strategy_used in [
-                StrategyType.GSD_DIRECT,
-                BaseStrategyType.GSD_DIRECT,
-            ] or "gsd" in result.strategy_used.value.lower()
+            assert (
+                result.strategy_used
+                in [
+                    StrategyType.GSD_DIRECT,
+                    BaseStrategyType.GSD_DIRECT,
+                ]
+                or "gsd" in result.strategy_used.value.lower()
+            )
 
         finally:
             await cf.close()
@@ -175,13 +176,16 @@ class TestAutoRoutesToRALPHForMediumContext:
 
         try:
             # Sparse content (lots of whitespace, simple words)
-            sparse_context = """
+            sparse_context = (
+                """
             This is a simple sentence.
 
             Here is another one.
 
             And one more.
-            """ * 100  # ~1.2K tokens, sparse (reduced from 1000 for RAM safety)
+            """
+                * 100
+            )  # ~1.2K tokens, sparse (reduced from 1000 for RAM safety)
 
             result = await cf.process(
                 task="List the main points",
@@ -214,7 +218,8 @@ class TestAutoRoutesToRALPHForMediumContext:
 
         try:
             # Dense content (code, tables, technical terms)
-            dense_context = """
+            dense_context = (
+                """
             ```python
             def process_data(data: List[Dict[str, Any]]) -> ProcessResult:
                 '''Process data with validation.'''
@@ -230,7 +235,9 @@ class TestAutoRoutesToRALPHForMediumContext:
 
             Technical specifications: API endpoints, authentication,
             rate limiting: 1000 RPM, tokenization using BPE algorithm.
-            """ * 20  # ~3K tokens, dense (reduced from 200 for RAM safety)
+            """
+                * 20
+            )  # ~3K tokens, dense (reduced from 200 for RAM safety)
 
             result = await cf.process(
                 task="Analyze this technical content",

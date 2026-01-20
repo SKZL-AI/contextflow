@@ -8,29 +8,24 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
 import numpy as np
 import pytest
 
-from contextflow.core.config import ContextFlowConfig, StrategyConfig, RAGConfig
-from contextflow.core.hooks import HooksManager, HookType, HookContext, reset_global_hooks_manager
+from contextflow.core.config import ContextFlowConfig, RAGConfig, StrategyConfig
+from contextflow.core.hooks import HookContext, HooksManager, HookType, reset_global_hooks_manager
 from contextflow.core.orchestrator import ContextFlow, OrchestratorConfig
-from contextflow.core.session import SessionManager
 from contextflow.core.types import (
     CompletionResponse,
     Message,
     ProviderCapabilities,
     ProviderType,
-    StrategyType,
     StreamChunk,
 )
 from contextflow.providers.base import BaseProvider
-from contextflow.strategies.base import StrategyResult
-
 
 # =============================================================================
 # Mock Provider Implementation
@@ -47,10 +42,10 @@ class MockProvider(BaseProvider):
     def __init__(
         self,
         model: str = "mock-model",
-        responses: Optional[List[str]] = None,
-        verification_responses: Optional[List[Dict[str, Any]]] = None,
-        stream_chunks: Optional[List[str]] = None,
-        fail_after: Optional[int] = None,
+        responses: list[str] | None = None,
+        verification_responses: list[dict[str, Any]] | None = None,
+        stream_chunks: list[str] | None = None,
+        fail_after: int | None = None,
         tokens_per_char: float = 0.25,
     ):
         """
@@ -71,8 +66,8 @@ class MockProvider(BaseProvider):
         self._fail_after = fail_after
         self._tokens_per_char = tokens_per_char
         self._call_count = 0
-        self._complete_calls: List[Dict[str, Any]] = []
-        self._stream_calls: List[Dict[str, Any]] = []
+        self._complete_calls: list[dict[str, Any]] = []
+        self._stream_calls: list[dict[str, Any]] = []
 
     @property
     def name(self) -> str:
@@ -97,31 +92,34 @@ class MockProvider(BaseProvider):
 
     async def complete(
         self,
-        messages: List[Message],
-        system: Optional[str] = None,
-        model: Optional[str] = None,
+        messages: list[Message],
+        system: str | None = None,
+        model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.7,
         top_p: float = 1.0,
-        stop_sequences: Optional[List[str]] = None,
+        stop_sequences: list[str] | None = None,
         **kwargs: object,
     ) -> CompletionResponse:
         """Return mock completion response."""
         self._call_count += 1
 
         # Store call info
-        self._complete_calls.append({
-            "messages": messages,
-            "system": system,
-            "model": model,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "call_number": self._call_count,
-        })
+        self._complete_calls.append(
+            {
+                "messages": messages,
+                "system": system,
+                "model": model,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "call_number": self._call_count,
+            }
+        )
 
         # Check for failure simulation
         if self._fail_after and self._call_count > self._fail_after:
             from contextflow.utils.errors import ProviderError
+
             raise ProviderError("Simulated provider failure")
 
         # Check if this is a verification call (system prompt contains verification keywords)
@@ -152,7 +150,7 @@ class MockProvider(BaseProvider):
 
     def _create_verification_response(
         self,
-        messages: List[Message],
+        messages: list[Message],
     ) -> CompletionResponse:
         """Create a verification response."""
         # Check for pre-configured verification responses
@@ -186,19 +184,21 @@ class MockProvider(BaseProvider):
 
     async def stream(
         self,
-        messages: List[Message],
-        system: Optional[str] = None,
-        model: Optional[str] = None,
+        messages: list[Message],
+        system: str | None = None,
+        model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.7,
         top_p: float = 1.0,
         **kwargs: object,
     ) -> AsyncIterator[StreamChunk]:
         """Stream mock response chunks."""
-        self._stream_calls.append({
-            "messages": messages,
-            "system": system,
-        })
+        self._stream_calls.append(
+            {
+                "messages": messages,
+                "system": system,
+            }
+        )
 
         for i, chunk in enumerate(self._stream_chunks):
             yield StreamChunk(
@@ -208,7 +208,7 @@ class MockProvider(BaseProvider):
             )
             await asyncio.sleep(0.01)
 
-    def count_tokens(self, text: str, model: Optional[str] = None) -> int:
+    def count_tokens(self, text: str, model: str | None = None) -> int:
         """Count tokens using character ratio."""
         return int(len(text) * self._tokens_per_char)
 
@@ -218,12 +218,12 @@ class MockProvider(BaseProvider):
         return self._call_count
 
     @property
-    def complete_calls(self) -> List[Dict[str, Any]]:
+    def complete_calls(self) -> list[dict[str, Any]]:
         """Get list of complete call details."""
         return self._complete_calls
 
     @property
-    def stream_calls(self) -> List[Dict[str, Any]]:
+    def stream_calls(self) -> list[dict[str, Any]]:
         """Get list of stream call details."""
         return self._stream_calls
 
@@ -257,22 +257,26 @@ class MockProviderWithVerification(MockProvider):
 
         # Add failing responses
         for i in range(fail_verification_count):
-            verification_responses.append({
-                "passed": False,
-                "score": 0.4 + (i * 0.1),
-                "message": f"Verification failed (attempt {i + 1})",
-                "issues": [f"Issue {i + 1}"],
-                "suggestions": [f"Improve point {i + 1}"],
-            })
+            verification_responses.append(
+                {
+                    "passed": False,
+                    "score": 0.4 + (i * 0.1),
+                    "message": f"Verification failed (attempt {i + 1})",
+                    "issues": [f"Issue {i + 1}"],
+                    "suggestions": [f"Improve point {i + 1}"],
+                }
+            )
 
         # Add passing response
-        verification_responses.append({
-            "passed": True,
-            "score": 0.9,
-            "message": "Verification passed",
-            "issues": [],
-            "suggestions": [],
-        })
+        verification_responses.append(
+            {
+                "passed": True,
+                "score": 0.9,
+                "message": "Verification passed",
+                "issues": [],
+                "suggestions": [],
+            }
+        )
 
         super().__init__(
             verification_responses=verification_responses,
@@ -303,7 +307,7 @@ class MockEmbeddingProvider:
         embedding = np.random.randn(self._dimension).astype(np.float32)
         return embedding / np.linalg.norm(embedding)
 
-    async def embed(self, texts: List[str]) -> "MockEmbeddingResult":
+    async def embed(self, texts: list[str]) -> MockEmbeddingResult:
         """Generate mock embeddings for multiple texts."""
         self._call_count += 1
         vectors = []
@@ -317,7 +321,8 @@ class MockEmbeddingProvider:
 @dataclass
 class MockEmbeddingResult:
     """Mock embedding result."""
-    vectors: List[np.ndarray]
+
+    vectors: list[np.ndarray]
 
 
 # =============================================================================
@@ -499,7 +504,8 @@ async def contextflow_with_verification(
 @pytest.fixture
 def small_context() -> str:
     """Provide small context (<10K tokens)."""
-    return """
+    return (
+        """
     This is a small document for testing.
     It contains a few paragraphs of text.
 
@@ -510,13 +516,16 @@ def small_context() -> str:
     1. Small contexts should use GSD strategy
     2. Processing should be fast
     3. Verification should pass
-    """ * 10  # ~1K tokens
+    """
+        * 10
+    )  # ~1K tokens
 
 
 @pytest.fixture
 def medium_context() -> str:
     """Provide medium context (10K-100K tokens)."""
-    base_paragraph = """
+    base_paragraph = (
+        """
     This is a medium-sized document that contains substantial content.
     It is designed to test the RALPH strategy which handles contexts
     between 10K and 100K tokens. The content includes various sections
@@ -531,14 +540,17 @@ def medium_context() -> str:
     The implementation uses a router to analyze context characteristics
     and select from GSD, RALPH, or RLM strategies. Each strategy has
     specific optimizations for different context sizes.
-    """ * 80  # ~11K tokens (reduced from 200, needs >10K for RALPH)
+    """
+        * 80
+    )  # ~11K tokens (reduced from 200, needs >10K for RALPH)
     return base_paragraph
 
 
 @pytest.fixture
 def large_context() -> str:
     """Provide large context (>100K tokens)."""
-    base_content = """
+    base_content = (
+        """
     This is a large document designed to test the RLM (Recursive Language Model)
     strategy. It contains extensive content that requires recursive processing
     with sub-agents to handle effectively.
@@ -558,7 +570,9 @@ def large_context() -> str:
     Boris Step 13 emphasizes the importance of verification for quality.
     The verification protocol provides 2-3x quality improvement by enabling
     the LLM to check its own work and iterate if necessary.
-    """ * 50  # ~15K tokens (reduced from 500 for RAM safety)
+    """
+        * 50
+    )  # ~15K tokens (reduced from 500 for RAM safety)
     return base_content
 
 
@@ -582,7 +596,7 @@ def complex_task() -> str:
 
 
 @pytest.fixture
-def sample_constraints() -> List[str]:
+def sample_constraints() -> list[str]:
     """Provide sample constraints for verification."""
     return [
         "Include all main topics",
@@ -597,14 +611,14 @@ def sample_constraints() -> List[str]:
 
 
 @pytest.fixture
-def hook_tracker() -> Dict[str, List[HookContext]]:
+def hook_tracker() -> dict[str, list[HookContext]]:
     """Provide a tracker for hook executions."""
     return {hook_type.value: [] for hook_type in HookType}
 
 
 @pytest.fixture
 def hooks_manager_with_tracking(
-    hook_tracker: Dict[str, List[HookContext]],
+    hook_tracker: dict[str, list[HookContext]],
 ) -> HooksManager:
     """Provide a hooks manager that tracks all executions."""
     manager = HooksManager(name="tracking")

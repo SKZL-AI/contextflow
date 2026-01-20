@@ -13,27 +13,15 @@ Tests the FastAPI REST API server endpoints:
 from __future__ import annotations
 
 import asyncio
-import json
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-from contextflow.api.server import app, API_PREFIX, get_contextflow
-from contextflow.api.models import (
-    ProcessRequest,
-    ProcessResponse,
-    HealthResponse,
-    HealthStatus,
-    AnalysisResponse,
-    BatchProcessRequest,
-    BatchProcessResponse,
-    ErrorResponse,
-)
+from contextflow.api.server import API_PREFIX, app, get_contextflow
 from contextflow.core.orchestrator import ContextFlow
 from contextflow.core.types import ProcessResult, StrategyType, TaskStatus
-
 
 # =============================================================================
 # Fixtures
@@ -82,6 +70,7 @@ def mock_contextflow() -> MagicMock:
     # Mock analyze method
     async def mock_analyze(*args, **kwargs):
         from contextflow.core.types import ContextAnalysis
+
         return ContextAnalysis(
             token_count=500,
             density_score=0.5,
@@ -102,6 +91,7 @@ def mock_contextflow() -> MagicMock:
 @pytest.fixture
 def test_client(mock_contextflow: MagicMock) -> TestClient:
     """Create test client with mocked ContextFlow."""
+
     async def override_get_contextflow():
         return mock_contextflow
 

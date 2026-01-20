@@ -527,10 +527,7 @@ class OllamaEmbeddingProvider(BaseEmbeddingProvider):
 
         # Check with and without tag
         base_name = use_model.split(":")[0]
-        is_available = any(
-            m == use_model or m.startswith(base_name)
-            for m in available
-        )
+        is_available = any(m == use_model or m.startswith(base_name) for m in available)
 
         if is_available:
             logger.debug("Model already available", model=use_model)
@@ -572,9 +569,7 @@ class OllamaEmbeddingProvider(BaseEmbeddingProvider):
 
     def __repr__(self) -> str:
         return (
-            f"OllamaEmbeddingProvider("
-            f"model={self._model!r}, "
-            f"base_url={self._base_url!r})"
+            f"OllamaEmbeddingProvider(" f"model={self._model!r}, " f"base_url={self._base_url!r})"
         )
 
 

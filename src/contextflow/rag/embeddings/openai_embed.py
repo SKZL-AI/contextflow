@@ -198,14 +198,12 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
 
         if dimensions < min_dims:
             raise ValueError(
-                f"Dimensions must be at least {min_dims} for {self._model}. "
-                f"Got: {dimensions}"
+                f"Dimensions must be at least {min_dims} for {self._model}. " f"Got: {dimensions}"
             )
 
         if dimensions > model_dims:
             raise ValueError(
-                f"Dimensions cannot exceed {model_dims} for {self._model}. "
-                f"Got: {dimensions}"
+                f"Dimensions cannot exceed {model_dims} for {self._model}. " f"Got: {dimensions}"
             )
 
         return dimensions
@@ -550,9 +548,7 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
         except Exception:
             return error_body
 
-    def _extract_embeddings(
-        self, response: dict[str, Any]
-    ) -> list[npt.NDArray[np.float32]]:
+    def _extract_embeddings(self, response: dict[str, Any]) -> list[npt.NDArray[np.float32]]:
         """
         Extract embeddings from API response.
 

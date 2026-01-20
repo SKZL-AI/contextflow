@@ -95,30 +95,24 @@ class ChunkingResult:
 
 # Sentence endings (handles abbreviations better)
 SENTENCE_END_PATTERN = re.compile(
-    r'(?<=[.!?])\s+(?=[A-Z])|'  # Period/!/? followed by space and capital
-    r'(?<=[.!?])\s*$'  # End of text
+    r"(?<=[.!?])\s+(?=[A-Z])|"  # Period/!/? followed by space and capital
+    r"(?<=[.!?])\s*$"  # End of text
 )
 
 # Paragraph boundaries (double newline or more)
-PARAGRAPH_PATTERN = re.compile(r'\n\s*\n')
+PARAGRAPH_PATTERN = re.compile(r"\n\s*\n")
 
 # Fenced code blocks (``` or ~~~)
-CODE_BLOCK_PATTERN = re.compile(
-    r'(```[\w]*\n.*?```|~~~[\w]*\n.*?~~~)',
-    re.DOTALL
-)
+CODE_BLOCK_PATTERN = re.compile(r"(```[\w]*\n.*?```|~~~[\w]*\n.*?~~~)", re.DOTALL)
 
 # Indented code blocks (4+ spaces or tab at line start)
-INDENTED_CODE_PATTERN = re.compile(
-    r'(?:^(?:[ ]{4,}|\t)[^\n]*\n)+',
-    re.MULTILINE
-)
+INDENTED_CODE_PATTERN = re.compile(r"(?:^(?:[ ]{4,}|\t)[^\n]*\n)+", re.MULTILINE)
 
 # Markdown headers
-HEADER_PATTERN = re.compile(r'^#{1,6}\s+.+$', re.MULTILINE)
+HEADER_PATTERN = re.compile(r"^#{1,6}\s+.+$", re.MULTILINE)
 
 # Horizontal rules
-HR_PATTERN = re.compile(r'^(?:[-*_]){3,}\s*$', re.MULTILINE)
+HR_PATTERN = re.compile(r"^(?:[-*_]){3,}\s*$", re.MULTILINE)
 
 
 # =============================================================================
@@ -169,9 +163,7 @@ class SmartChunker:
             ValueError: If overlap >= chunk_size or chunk_size < min_chunk_size
         """
         if overlap >= chunk_size:
-            raise ValueError(
-                f"Overlap ({overlap}) must be less than chunk_size ({chunk_size})"
-            )
+            raise ValueError(f"Overlap ({overlap}) must be less than chunk_size ({chunk_size})")
         if chunk_size < min_chunk_size:
             raise ValueError(
                 f"chunk_size ({chunk_size}) must be >= min_chunk_size ({min_chunk_size})"
@@ -308,9 +300,11 @@ class SmartChunker:
         current_tokens = 0
 
         for sent_end in sentence_boundaries:
-            sentence = text[chunk_start:sent_end] if not boundaries else text[
-                boundaries[-1][1] if boundaries else chunk_start:sent_end
-            ]
+            sentence = (
+                text[chunk_start:sent_end]
+                if not boundaries
+                else text[boundaries[-1][1] if boundaries else chunk_start : sent_end]
+            )
             sent_tokens = self._estimator.count_tokens(sentence)
 
             if current_tokens + sent_tokens > self.chunk_size and current_tokens > 0:
@@ -474,7 +468,7 @@ class SmartChunker:
                     next_break = min(next_break, para_match.end())
 
                 # Find next code block
-                for cb_start, cb_end in code_blocks:
+                for cb_start, _cb_end in code_blocks:
                     if cb_start > i:
                         next_break = min(next_break, cb_start)
                         break
@@ -617,7 +611,13 @@ class SmartChunker:
                 # Check if followed by space and capital or end of text
                 if i + 1 >= len(text):
                     boundaries.append(i + 1)
-                elif i + 2 < len(text) and text[i + 1].isspace() and text[i + 2].isupper() or text[i + 1].isspace() and i + 2 >= len(text):
+                elif (
+                    i + 2 < len(text)
+                    and text[i + 1].isspace()
+                    and text[i + 2].isupper()
+                    or text[i + 1].isspace()
+                    and i + 2 >= len(text)
+                ):
                     boundaries.append(i + 2)
             i += 1
 

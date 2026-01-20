@@ -385,9 +385,7 @@ class ProcessRequest(BaseModel):
             "rlm_dense",
         }
         if v.lower() not in valid_strategies:
-            raise ValueError(
-                f"Invalid strategy '{v}'. Must be one of: {valid_strategies}"
-            )
+            raise ValueError(f"Invalid strategy '{v}'. Must be one of: {valid_strategies}")
         return v.lower()
 
 

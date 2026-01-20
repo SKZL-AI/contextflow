@@ -270,9 +270,7 @@ class ResultAggregator:
 
         # Execute strategy
         try:
-            content = await self._execute_strategy(
-                filtered_results, task, used_strategy, conflicts
-            )
+            content = await self._execute_strategy(filtered_results, task, used_strategy, conflicts)
         except Exception as e:
             logger.error(
                 "Aggregation failed",
@@ -665,7 +663,7 @@ Create a hierarchical summary with:
         statements: list[str] = []
 
         # Split into sentences
-        sentences = re.split(r'[.!?]\s+', text)
+        sentences = re.split(r"[.!?]\s+", text)
 
         for sentence in sentences:
             sentence = sentence.strip()
@@ -674,9 +672,22 @@ Create a hierarchical summary with:
                 if any(
                     indicator in sentence.lower()
                     for indicator in [
-                        "is", "are", "was", "were", "should", "must",
-                        "will", "can", "cannot", "always", "never",
-                        "all", "none", "only", "best", "worst",
+                        "is",
+                        "are",
+                        "was",
+                        "were",
+                        "should",
+                        "must",
+                        "will",
+                        "can",
+                        "cannot",
+                        "always",
+                        "never",
+                        "all",
+                        "none",
+                        "only",
+                        "best",
+                        "worst",
                     ]
                 ):
                     statements.append(sentence)
@@ -709,8 +720,8 @@ Create a hierarchical summary with:
                     return "contradiction"
 
         # Check for numeric conflicts (e.g., "5 issues" vs "3 issues")
-        nums_a = re.findall(r'\b(\d+)\b', stmt_a)
-        nums_b = re.findall(r'\b(\d+)\b', stmt_b)
+        nums_a = re.findall(r"\b(\d+)\b", stmt_a)
+        nums_b = re.findall(r"\b(\d+)\b", stmt_b)
         if nums_a and nums_b:
             # Check if same context but different numbers
             a_words = set(a_lower.split()) - set(nums_a)
@@ -791,9 +802,7 @@ For each conflict, provide a brief resolution guidance (which view to prefer, or
             scores.append(sum(verification_scores) / len(verification_scores))
 
         # Factor 2: Content coverage
-        source_content_length = sum(
-            len(r.output) for r in results if r.success and r.output
-        )
+        source_content_length = sum(len(r.output) for r in results if r.success and r.output)
         if source_content_length > 0:
             coverage = min(len(aggregated) / source_content_length, 1.0)
             # Optimal coverage around 40-80%
@@ -861,20 +870,20 @@ For each conflict, provide a brief resolution guidance (which view to prefer, or
     def _split_into_paragraphs(self, text: str) -> list[str]:
         """Split text into paragraphs."""
         # Split on double newlines or markdown headers
-        paragraphs = re.split(r'\n\n+|(?=^#+\s)', text, flags=re.MULTILINE)
+        paragraphs = re.split(r"\n\n+|(?=^#+\s)", text, flags=re.MULTILINE)
         return [p.strip() for p in paragraphs if p.strip()]
 
     def _content_hash(self, text: str) -> str:
         """Create hash for content deduplication."""
         # Normalize before hashing
-        normalized = re.sub(r'\s+', ' ', text.lower().strip())
+        normalized = re.sub(r"\s+", " ", text.lower().strip())
         return hashlib.md5(normalized.encode()).hexdigest()[:16]
 
     def _normalize_for_voting(self, text: str) -> str:
         """Normalize text for voting comparison."""
         # Remove extra whitespace, lowercase, remove punctuation
-        normalized = re.sub(r'\s+', ' ', text.lower().strip())
-        normalized = re.sub(r'[^\w\s]', '', normalized)
+        normalized = re.sub(r"\s+", " ", text.lower().strip())
+        normalized = re.sub(r"[^\w\s]", "", normalized)
         return normalized
 
     def _deduplicate(self, text: str) -> str:

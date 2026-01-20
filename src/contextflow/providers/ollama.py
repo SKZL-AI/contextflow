@@ -306,8 +306,7 @@ class OllamaProvider(BaseProvider):
             # Handle errors
             if response.status_code == 404:
                 error_msg = (
-                    f"Model '{model}' not found. "
-                    f"Pull it first with: ollama pull {model}"
+                    f"Model '{model}' not found. " f"Pull it first with: ollama pull {model}"
                 )
                 raise ProviderError("ollama", error_msg, status_code=404)
 
@@ -342,8 +341,7 @@ class OllamaProvider(BaseProvider):
                 "ollama",
                 details={
                     "message": (
-                        "Cannot connect to Ollama. "
-                        "Ensure Ollama is running with: ollama serve"
+                        "Cannot connect to Ollama. " "Ensure Ollama is running with: ollama serve"
                     ),
                     "base_url": self.base_url,
                 },
@@ -410,8 +408,7 @@ class OllamaProvider(BaseProvider):
                 # Handle errors
                 if response.status_code == 404:
                     error_msg = (
-                        f"Model '{model}' not found. "
-                        f"Pull it first with: ollama pull {model}"
+                        f"Model '{model}' not found. " f"Pull it first with: ollama pull {model}"
                     )
                     raise ProviderError("ollama", error_msg, status_code=404)
 
@@ -453,8 +450,7 @@ class OllamaProvider(BaseProvider):
                 "ollama",
                 details={
                     "message": (
-                        "Cannot connect to Ollama. "
-                        "Ensure Ollama is running with: ollama serve"
+                        "Cannot connect to Ollama. " "Ensure Ollama is running with: ollama serve"
                     ),
                     "base_url": self.base_url,
                 },

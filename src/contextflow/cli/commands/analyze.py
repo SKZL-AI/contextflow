@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -26,10 +26,12 @@ except ImportError:
 
     class CLIAnalyzeArgs(BaseModel):
         """CLI analyze command arguments."""
-        files: List[str] = Field(default_factory=list, description="Files to analyze")
-        context: Optional[str] = Field(default=None, description="Direct context")
+
+        files: list[str] = Field(default_factory=list, description="Files to analyze")
+        context: str | None = Field(default=None, description="Direct context")
         format: str = Field(default="text", description="Output format")
         verbose: bool = Field(default=False, description="Verbose output")
+
 
 app = typer.Typer(help="Analyze context and get recommendations")
 console = Console()
@@ -75,9 +77,7 @@ def _print_analysis_panel(analysis: dict, verbose: bool = False) -> None:
     table.add_row("Token Count", f"{token_count:,}")
 
     complexity = analysis.get("complexity_score", 0)
-    complexity_color = (
-        "green" if complexity < 0.4 else "yellow" if complexity < 0.7 else "red"
-    )
+    complexity_color = "green" if complexity < 0.4 else "yellow" if complexity < 0.7 else "red"
     table.add_row("Complexity", f"[{complexity_color}]{complexity:.2f}[/{complexity_color}]")
 
     density = analysis.get("density_score", 0)
@@ -184,11 +184,11 @@ async def _analyze_async(args: CLIAnalyzeArgs) -> dict:
 @app.callback(invoke_without_command=True)
 def analyze(
     documents: Annotated[
-        Optional[List[Path]],
+        list[Path] | None,
         typer.Argument(help="Document files to analyze"),
     ] = None,
     context: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--context", "-c", help="Direct context string to analyze"),
     ] = None,
     output: Annotated[
@@ -196,7 +196,7 @@ def analyze(
         typer.Option("--output", "-o", help="Output format: text, json"),
     ] = "text",
     output_file: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output-file", "-O", help="Write output to file"),
     ] = None,
     verbose: Annotated[
@@ -217,9 +217,7 @@ def analyze(
     """
     # Validate inputs
     if documents is None and context is None:
-        error_console.print(
-            "[red]Error:[/red] Either documents or --context must be provided"
-        )
+        error_console.print("[red]Error:[/red] Either documents or --context must be provided")
         raise typer.Exit(code=1)
 
     # Build args
@@ -261,6 +259,7 @@ def analyze(
         error_console.print(f"[red]Error:[/red] {e}")
         if verbose:
             import traceback
+
             error_console.print(traceback.format_exc())
         raise typer.Exit(code=1)
 
