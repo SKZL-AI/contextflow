@@ -44,7 +44,7 @@ sentence-transformers = "^2.3"
 numpy = "^1.26"
 
 # Token Counting
-tiktoken = "^0.5"
+tiktoken = "^0.12"
 
 # API
 fastapi = "^0.109"
