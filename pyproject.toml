@@ -41,7 +41,7 @@ google-generativeai = "^0.4"
 # RAG & Embeddings
 faiss-cpu = "^1.7"
 sentence-transformers = "^2.3"
-numpy = "^1.26"
+numpy = "^2.4"
 
 # Token Counting
 tiktoken = "^0.5"
